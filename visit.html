@@ -86,6 +86,14 @@
 
       </button>
 
+      <input
+  type="text"
+  id="searchInput"
+  placeholder="Search Customer / Mobile / Address"
+  class="border p-3 rounded w-full mt-3"
+  onkeyup="filterCustomers()">
+
+
     </div>
 
     <div id="customerList"></div>
@@ -251,7 +259,7 @@
     const API_URL =
       'https://script.google.com/macros/s/AKfycbyYQpyI3Da_J6Q7Om1OOzeTIu-sV1LD_9LjB5gxUr7x5bAfZ4ZcrkIdSNbiXEALC8o/exec';
 
-
+let allCustomers = [];
 
     // ====================================
     // VARIABLES
@@ -297,6 +305,58 @@
 
     }
 
+    function filterCustomers() {
+
+  const keyword =
+    document
+      .getElementById('searchInput')
+      .value
+      .toLowerCase()
+      .trim();
+
+  if (!keyword) {
+
+    renderCustomers(allCustomers);
+
+    return;
+
+  }
+
+  const filtered =
+    allCustomers.filter(c => {
+
+      return (
+
+        String(c.clientName || '')
+          .toLowerCase()
+          .includes(keyword)
+
+        ||
+
+        String(c.mobile || '')
+          .toLowerCase()
+          .includes(keyword)
+
+        ||
+
+        String(c.address || '')
+          .toLowerCase()
+          .includes(keyword)
+
+        ||
+
+        String(c.id || '')
+          .toLowerCase()
+          .includes(keyword)
+
+      );
+
+    });
+
+  renderCustomers(filtered);
+
+}
+
 
 
     // ====================================
@@ -317,7 +377,9 @@
         const data =
           await response.json();
 
-        renderCustomers(data);
+        allCustomers = data;
+
+renderCustomers(allCustomers);
 
       } catch(err) {
 
@@ -404,7 +466,7 @@
             <div class="flex gap-2 mt-4">
 
               <a
-                href="tel:8827462871"
+                href="tel:${c.contact}"
                 class="bg-green-600 text-white px-3 py-2 rounded text-center flex-1">
 
                 Call
