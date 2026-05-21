@@ -16,7 +16,21 @@
   href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
 
 </head>
+<style>
 
+@keyframes spin {
+
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+
+}
+
+</style>
 <body class="bg-gray-100">
 
   <!-- ========================= -->
@@ -24,19 +38,43 @@
   <!-- ========================= -->
 <div
   id="loader"
-  style="display:none;"
-  class="fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-[9999]">
+  style="
+    display:none;
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background:rgba(0,0,0,0.5);
+    z-index:999999;
+    justify-content:center;
+    align-items:center;
+  ">
 
-  <div class="bg-white p-6 rounded-2xl shadow-xl flex flex-col items-center">
+  <div style="
+    background:white;
+    padding:24px;
+    border-radius:20px;
+    text-align:center;
+    min-width:220px;
+  ">
 
-    <div
-      class="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-700">
-    </div>
+    <div style="
+      width:60px;
+      height:60px;
+      border:6px solid #ddd;
+      border-top:6px solid #2563eb;
+      border-radius:50%;
+      animation:spin 1s linear infinite;
+      margin:auto;
+    "></div>
 
-    <p class="mt-4 font-semibold text-gray-700">
-
+    <p style="
+      margin-top:16px;
+      font-weight:bold;
+      color:#444;
+    ">
       Please Wait...
-
     </p>
 
   </div>
