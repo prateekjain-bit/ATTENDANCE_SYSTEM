@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0">
+
+  <title>Recovery Tracker</title>
+
+  <link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+
+</head>
+
+<body class="bg-gray-100">
+
+  <!-- ========================= -->
+  <!-- LOADER -->
+  <!-- ========================= -->
+<div
+  id="loader"
+  style="display:none;"
+  class="fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-[9999]">
+
+  <div class="bg-white p-6 rounded-2xl shadow-xl flex flex-col items-center">
+
+    <div
+      class="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-700">
+    </div>
+
+    <p class="mt-4 font-semibold text-gray-700">
+
+      Please Wait...
+
+    </p>
+
+  </div>
+
+</div>
+
+
+  <!-- ========================= -->
+  <!-- HEADER -->
+  <!-- ========================= -->
+
+  <div class="bg-blue-700 text-white p-4 shadow">
+
+    <h1 class="text-2xl font-bold">
+
+      Recovery Tracker
+
+    </h1>
+
+    <p class="text-sm opacity-80">
+
+      Jewellery Outstanding Collection
+
+    </p>
+
+  </div>
+
+
+
+  <!-- ========================= -->
+  <!-- MAIN -->
+  <!-- ========================= -->
+
+  <div class="p-4">
+
+    <div class="bg-white rounded-xl shadow p-4 mb-4">
+
+<select
+  id="staffName"
+  class="border p-3 rounded w-full mb-3">
+  <option value="">Select Your Name</option>
+  <option value="Manoj Kumar Bansod">Manoj Kumar Bansod</option>
+
+</select>
+
+      <button
+        onclick="loadCustomers()"
+        class="bg-blue-600 text-white px-4 py-3 rounded w-full">
+
+        Load Customers
+
+      </button>
+
+      <input
+  type="text"
+  id="searchInput"
+  placeholder="Search Customer / Mobile / Address"
+  class="border p-3 rounded w-full mt-3"
+  onkeyup="filterCustomers()">
+
+
+    </div>
+
+    <div id="customerList"></div>
+
+  </div>
+
+
+
+  <!-- ========================= -->
+  <!-- MODAL -->
+  <!-- ========================= -->
+
+  <div
+    id="visitModal"
+    class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+
+    <div class="bg-white rounded-xl p-4 w-full max-w-md overflow-auto max-h-screen">
+
+      <h2 class="text-xl font-bold mb-4">
+
+        Update Visit
+
+      </h2>
+
+      <input type="hidden" id="customerId">
+
+      <input type="hidden" id="customerName">
+
+
+      <!-- STATUS -->
+
+      <label class="text-sm font-semibold">
+
+        Visit Status
+
+      </label>
+
+      <select
+        id="status"
+        class="border p-3 rounded w-full mb-3 mt-1">
+
+        <option>Visited</option>
+
+        <option>Payment Received</option>
+
+        <option>Promise To Pay</option>
+
+        <option>Not Available</option>
+
+        <option>Wrong Address</option>
+
+      </select>
+
+
+      <!-- PAYMENT -->
+
+      <label class="text-sm font-semibold">
+
+        Payment Amount
+
+      </label>
+
+      <input
+        type="number"
+        id="payment"
+        placeholder="Enter Amount"
+        class="border p-3 rounded w-full mb-3 mt-1">
+
+
+      <!-- REMARK -->
+
+      <label class="text-sm font-semibold">
+
+        Remark
+
+      </label>
+
+      <textarea
+        id="remark"
+        placeholder="Enter Remark"
+        class="border p-3 rounded w-full mb-3 mt-1"></textarea>
+
+
+      <!-- CAMERA -->
+
+      <label class="text-sm font-semibold">
+
+        Live Selfie Camera
+
+      </label>
+
+      <video
+        id="video"
+        autoplay
+        playsinline
+        class="w-full rounded-xl border mt-2 bg-black"></video>
+
+
+      <div class="flex gap-2 mt-3">
+
+        <button
+          type="button"
+          onclick="startCamera()"
+          class="bg-blue-600 text-white px-4 py-2 rounded flex-1">
+
+          Start Camera
+
+        </button>
+
+        <button
+          type="button"
+          onclick="capturePhoto()"
+          class="bg-green-600 text-white px-4 py-2 rounded flex-1">
+
+          Capture
+
+        </button>
+
+      </div>
+
+
+      <canvas
+        id="canvas"
+        class="hidden"></canvas>
+
+
+      <img
+        id="preview"
+        class="hidden rounded-xl w-full border mt-3">
+
+
+      <!-- BUTTONS -->
+
+      <button
+        id="submitBtn"
+        onclick="submitVisit()"
+        class="bg-green-700 text-white px-4 py-3 rounded w-full mt-4">
+
+        Submit Visit
+
+      </button>
+
+      <button
+        onclick="closeModal()"
+        class="bg-red-500 text-white px-4 py-3 rounded w-full mt-2">
+
+        Cancel
+
+      </button>
+
+    </div>
+
+  </div>
+
+
+<script>
+
+const CUSTOMER_API =
+'https://opensheet.elk.sh/1JC2kyM0xdI3jtiLwb0F9B-nS-Dv8STBYw9BcZC6aacA/OUTSTANDING';
+
+const API_URL =
+'https://script.google.com/macros/s/AKfycbyYQpyI3Da_J6Q7Om1OOzeTIu-sV1LD_9LjB5gxUr7x5bAfZ4ZcrkIdSNbiXEALC8o/exec';
+
+let allCustomers = [];
+
+let selectedImage = '';
+
+let currentAddress = '';
+
+let currentLat = '';
+
+let currentLng = '';
+
+let stream = null;
+
+let isSubmitting = false;
+
+
+
+// =========================
+// LOADER
+// =========================
+function showLoader() {
+
+  document
+    .getElementById('loader')
+    .style.display = 'flex';
+
+}
+
+function hideLoader() {
+
+  document
+    .getElementById('loader')
+    .style.display = 'none';
+
+}
+
+
+// =========================
+// LOAD CUSTOMERS
+// =========================
+
+async function loadCustomers() {
+
+  showLoader();
+
+  try {
+
+    const response =
+      await fetch(CUSTOMER_API, {
+
+        cache: 'no-cache'
+
+      });
+
+    const data =
+      await response.json();
+
+    allCustomers = data;
+
+    renderCustomers(allCustomers);
+
+  } catch(err) {
+
+    console.error(err);
+
+    alert('Failed To Load Customers');
+
+  } finally {
+
+    hideLoader();
+
+  }
+
+}
+
+
+
+// =========================
+// SEARCH
+// =========================
+
+function filterCustomers() {
+
+  const keyword =
+    document
+      .getElementById('searchInput')
+      .value
+      .toLowerCase()
+      .trim();
+
+  if (!keyword) {
+
+    renderCustomers(allCustomers);
+
+    return;
+
+  }
+
+  const filtered =
+    allCustomers.filter(c => {
+
+      return (
+
+        String(c["CLIENT NAME"] || '')
+          .toLowerCase()
+          .includes(keyword)
+
+        ||
+
+        String(c["Contact"] || '')
+          .toLowerCase()
+          .includes(keyword)
+
+        ||
+
+        String(c["ADDRESS/CONTACT"] || '')
+          .toLowerCase()
+          .includes(keyword)
+
+        ||
+
+        String(c["ID"] || '')
+          .toLowerCase()
+          .includes(keyword)
+
+      );
+
+    });
+
+  renderCustomers(filtered);
+
+}
+
+
+
+// =========================
+// RENDER CUSTOMERS
+// =========================
+
+function renderCustomers(data) {
+
+  const container =
+    document.getElementById('customerList');
+
+  container.innerHTML = '';
+
+  if (!data || data.length === 0) {
+
+    container.innerHTML = `
+
+      <div class="bg-red-100 text-red-700 p-4 rounded">
+
+        No Customer Found
+
+      </div>
+
+    `;
+
+    return;
+
+  }
+
+  data.forEach(function(c){
+
+    const customerName =
+      c["CLIENT NAME"] || '';
+
+    const address =
+      c["ADDRESS/CONTACT"] || '';
+
+    const mobile =
+      c["Contact"] || '';
+
+    const billAmt =
+      c["TOTAL BILL AMT"] || '';
+
+    const balance =
+      c["FINAL BALANCE BILL AMT"] || '';
+
+    const lead =
+      c["REMINDER IN DAYS"] || '';
+
+    const billDate =
+      c["BILL DATE"] || '';
+
+    const pdate =
+      c["DATE FOR HOME VISIT"] || '';
+
+    container.innerHTML += `
+
+      <div class="bg-white rounded-xl shadow p-4 mb-4">
+
+        <h2 class="font-bold text-lg">
+
+          ${customerName}
+
+        </h2>
+
+        <p class="text-sm text-gray-600 mt-1">
+
+          ${address}
+
+        </p>
+
+        <div class="mt-3">
+
+          <div class="text-sm">
+
+            Bill Date:
+            ${formatDate(billDate)}
+
+            | Bill Amt:
+            ₹ ${billAmt}
+
+            | Balance:
+            ₹ ${balance}
+
+          </div>
+
+          <div class="text-sm mt-1">
+
+            Reminder Days:
+            ${lead}
+
+          </div>
+
+          <div class="text-sm mt-1">
+
+            Visit Plan Date:
+            ${formatDate(pdate)}
+
+          </div>
+
+        </div>
+
+        <div class="flex gap-2 mt-4">
+
+          <a
+            href="tel:${mobile}"
+            class="bg-green-600 text-white px-3 py-2 rounded text-center flex-1">
+
+            Call
+
+          </a>
+
+          <button
+            onclick='openVisit(${JSON.stringify(c)})'
+            class="bg-blue-600 text-white px-3 py-2 rounded flex-1">
+
+            Update Visit
+
+          </button>
+
+        </div>
+
+      </div>
+
+    `;
+
+  });
+
+}
+
+
+
+// =========================
+// DATE FORMAT
+// =========================
+
+function formatDate(dateString) {
+
+  if (!dateString) return '';
+
+  const d =
+    new Date(String(dateString));
+
+  if (isNaN(d)) return dateString;
+
+  return d.toLocaleDateString('en-IN', {
+
+    day: '2-digit',
+
+    month: 'short',
+
+    year: 'numeric'
+
+  });
+
+}
+
+
+
+// =========================
+// OPEN MODAL
+// =========================
+
+function openVisit(c) {
+
+  selectedImage = '';
+
+  currentAddress = '';
+
+  currentLat = '';
+
+  currentLng = '';
+
+  document
+    .getElementById('preview')
+    .classList.add('hidden');
+
+  const modal =
+    document.getElementById('visitModal');
+
+  modal.classList.remove('hidden');
+
+  modal.classList.add('flex');
+
+  document
+    .getElementById('customerId')
+    .value = c["ID"] || '';
+
+  document
+    .getElementById('customerName')
+    .value = c["CLIENT NAME"] || '';
+
+}
+
+
+
+// =========================
+// CLOSE MODAL
+// =========================
+
+function closeModal() {
+
+  const modal =
+    document.getElementById('visitModal');
+
+  modal.classList.remove('flex');
+
+  modal.classList.add('hidden');
+
+  if (stream) {
+
+    stream.getTracks().forEach(track => {
+
+      track.stop();
+
+    });
+
+  }
+
+}
+
+
+
+// =========================
+// START CAMERA
+// =========================
+
+async function startCamera() {
+
+  try {
+
+    stream =
+      await navigator
+        .mediaDevices
+        .getUserMedia({
+
+          video: {
+
+            facingMode: 'user'
+
+          },
+
+          audio: false
+
+        });
+
+    document
+      .getElementById('video')
+      .srcObject = stream;
+
+  } catch(err) {
+
+    console.error(err);
+
+    alert('Camera Permission Denied');
+
+  }
+
+}
+
+
+
+// =========================
+// CAPTURE PHOTO
+// =========================
+
+async function capturePhoto() {
+
+  showLoader();
+
+  navigator.geolocation.getCurrentPosition(
+
+    async function(pos){
+
+      try {
+
+        currentLat =
+          pos.coords.latitude;
+
+        currentLng =
+          pos.coords.longitude;
+
+        const video =
+          document.getElementById('video');
+
+        const canvas =
+          document.getElementById('canvas');
+
+        const ctx =
+          canvas.getContext('2d');
+
+        canvas.width =
+          video.videoWidth;
+
+        canvas.height =
+          video.videoHeight;
+
+        ctx.drawImage(
+
+          video,
+
+          0,
+
+          0,
+
+          canvas.width,
+
+          canvas.height
+
+        );
+
+        try {
+
+          const geoRes =
+            await fetch(
+
+              'https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=' +
+              currentLat +
+              '&lon=' +
+              currentLng
+
+            );
+
+          const geoData =
+            await geoRes.json();
+
+          currentAddress =
+            geoData.display_name || '';
+
+        } catch(err) {
+
+          currentAddress =
+            'Address Not Found';
+
+        }
+
+        ctx.fillStyle =
+          'rgba(0,0,0,0.7)';
+
+        ctx.fillRect(
+
+          0,
+
+          canvas.height - 240,
+
+          canvas.width,
+
+          240
+
+        );
+
+        ctx.fillStyle =
+          'white';
+
+        ctx.font =
+          '24px Arial';
+
+        const now =
+          new Date()
+          .toLocaleString();
+
+            wrapText(
+            ctx,
+            currentAddress,
+            20,
+            canvas.height - 60,
+            canvas.width - 40,
+            28
+          );
+
+        ctx.fillText(
+
+          'LAT: ' + currentLat,
+
+          20,
+
+          canvas.height - 140
+
+        );
+
+        ctx.fillText(
+
+          'LNG: ' + currentLng,
+
+          20,
+
+          canvas.height - 100
+
+        );
+
+        ctx.fillText(
+
+          currentAddress,
+
+          20,
+
+          canvas.height - 60
+
+        );
+
+        selectedImage =
+          canvas.toDataURL(
+            'image/jpeg',
+            0.9
+          );
+
+        const preview =
+          document.getElementById('preview');
+
+        preview.src =
+          selectedImage;
+
+        preview.classList.remove('hidden');
+
+      } catch(err) {
+
+        console.error(err);
+
+        alert('Capture Failed');
+
+      } finally {
+
+        hideLoader();
+
+      }
+
+    },
+
+    function(err){
+
+      console.error(err);
+
+      hideLoader();
+
+      alert('GPS Permission Denied');
+
+    },
+
+    {
+
+      enableHighAccuracy: true,
+
+      timeout: 15000,
+
+      maximumAge: 0
+
+    }
+
+  );
+
+}
+
+
+function wrapText(
+  context,
+  text,
+  x,
+  y,
+  maxWidth,
+  lineHeight
+) {
+
+  const words = text.split(' ');
+
+  let line = '';
+
+  for (let n = 0; n < words.length; n++) {
+
+    const testLine =
+      line + words[n] + ' ';
+
+    const metrics =
+      context.measureText(testLine);
+
+    const testWidth =
+      metrics.width;
+
+    if (
+      testWidth > maxWidth &&
+      n > 0
+    ) {
+
+      context.fillText(line, x, y);
+
+      line = words[n] + ' ';
+
+      y += lineHeight;
+
+    } else {
+
+      line = testLine;
+
+    }
+
+  }
+
+  context.fillText(line, x, y);
+
+}
+
+// =========================
+// SUBMIT VISIT
+// =========================
+
+async function submitVisit() {
+
+  if (isSubmitting) return;
+
+  if (!selectedImage) {
+
+    alert('Capture Selfie First');
+
+    return;
+
+  }
+
+  const staffName =
+    document.getElementById('staffName').value;
+
+  if (!staffName) {
+
+    alert('Select Staff Name');
+
+    return;
+
+  }
+
+  isSubmitting = true;
+
+  showLoader();
+
+  const submitBtn =
+    document.getElementById('submitBtn');
+
+  submitBtn.disabled = true;
+
+  submitBtn.innerText =
+    'Submitting...';
+
+  const payload = {
+
+    customerId:
+      document.getElementById('customerId').value,
+
+    customerName:
+      document.getElementById('customerName').value,
+
+    staffName:
+      staffName,
+
+    status:
+      document.getElementById('status').value,
+
+    payment:
+      document.getElementById('payment').value || 0,
+
+    remark:
+      document.getElementById('remark').value,
+
+    latitude:
+      currentLat,
+
+    longitude:
+      currentLng,
+
+    address:
+      currentAddress,
+
+    image:
+      selectedImage,
+
+    visitTime:
+      new Date().toLocaleString('en-IN')
+
+  };
+
+  try {
+
+    const response =
+      await fetch(API_URL, {
+
+        method: 'POST',
+
+        headers: {
+
+          'Content-Type':
+            'text/plain;charset=utf-8'
+
+        },
+
+        body:
+          JSON.stringify(payload)
+
+      });
+
+    const result =
+      await response.json();
+
+    if (result.success) {
+
+      alert('Visit Saved Successfully');
+
+      closeModal();
+
+    } else {
+
+      alert(result.message || 'Failed To Save');
+
+    }
+
+  } catch(err) {
+
+    console.error(err);
+
+    alert('Failed To Save Visit');
+
+  } finally {
+
+    submitBtn.disabled = false;
+
+    submitBtn.innerText =
+      'Submit Visit';
+
+    isSubmitting = false;
+
+    hideLoader();
+
+  }
+
+}
+
+</script>
+
+</body>
+
+</html>
