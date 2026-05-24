@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Task Delegation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
+    
+</head>
+<body class="bg-gray-100 p-4 flex items-center justify-center min-h-screen">
+    <div class="w-full max-w-md bg-white p-6 rounded-lg shadow-lg">
+        <div>
+            <img src="https://9mindia.in/media/Images/9M_logo_tklb61I.png" style="float:inline-end" class="w-24">
+        </div>
+        <h2 class="text-xl font-bold text-center mb-4 text-gray-700">Delegation Form</h2>
+<br><br>
+  <!-- Doer Name -->
+        <label class="block text-sm font-semibold text-gray-600 mb-1" style="width:100%;">Assgined By:</label>
+        <select id="assign" name="assign" class="w-full p-2 border rounded-md mb-3"></select>
+
+        <!-- Doer Name -->
+        <label class="block text-sm font-semibold text-gray-600 mb-1" style="width:100%;">Doer Name:</label>
+        <select id="doer" name="doer" class="w-full p-2 border rounded-md mb-3"></select>
+        <!-- Date Input -->
+        <label class="block text-sm font-semibold text-gray-600 mb-1">Due Date:</label>
+        <input type="date" name="date" id="date" class="w-full p-2 border rounded-md mb-3">
+
+       <!-- Task Input -->
+<label class="block text-sm font-semibold text-gray-600 mb-1">Task:</label>
+<textarea name="task" id="task" class="w-full p-2 border rounded-md mb-3" placeholder="Enter Task" rows="4"></textarea>
+
+
+
+        <!-- Audio Recording -->
+        <button id="recordBtn" onclick="toggleRecording()" class="bg-blue-500 text-white px-4 py-2 rounded-md w-full font-semibold transition hover:bg-blue-600">
+            🎤 Tap to Record
+        </button>
+        <audio id="audioPlayback" controls class="mt-3 hidden w-full"></audio>
+
+      <!-- Submit Button (Disabled Initially) -->
+        <button id="submitBtn" onclick="submitForm()" class="bg-green-500 text-white px-4 py-2 rounded-md mt-4 w-full font-semibold transition hover:bg-green-600" >
+            ✅ Submit Task
+        </button>
+    </div>
+
+
+<script>// ==========================================
+// CONFIG
+// ==========================================
+
+const SPREADSHEET_ID =
+  "1x83mZ5tp1h6xEcTaZuhgWeTtC4SN_Nd5uhNF7FURtJw";
+
+const DOERS_API =
+  `https://opensheet.elk.sh/${SPREADSHEET_ID}/Doers`;
+
+const ASSIGNERS_API =
+  `https://opensheet.elk.sh/${SPREADSHEET_ID}/Assigners`;
+
+const APPS_SCRIPT_API =
+  "https://script.google.com/macros/s/AKfycbyBY4WlHKmJ2RvCxpZmX2AG6Bk4cUsQtYZW9UE1f-r9v0ZRU3_qVgSrWCaB31ge-m0/exec";
+
+
+
+// ==========================================
+// PAGE LOAD
+// ==========================================
+
+document.addEventListener(
+  "DOMContentLoaded",
+  function () {
+
+    fetchDoers();
+
+    fetchAssigners();
+
+  }
+);
+
+
+// ==========================================
+// FETCH DOERS
+// ==========================================
+
+async function fetchDoers() {
+
+  try {
+
+    const response =
+      await fetch(DOERS_API);
+
+    const doers =
+      await response.json();
+console.log(doers)
+    populateDoers(doers);
+
+  } catch (error) {
+
+    console.error(
+      "Error loading doers:",
+      error
+    );
+
+  }
+
+}
+
+
+// ==========================================
+// FETCH ASSIGNERS
+// ==========================================
+
+async function fetchAssigners() {
+
+  try {
+
+    const response =
+      await fetch(ASSIGNERS_API);
+
+    const assigners =
+      await response.json();
+
+    populateAssigners(assigners);
+
+  } catch (error) {
+
+    console.error(
+      "Error loading assigners:",
+      error
+    );
+
+  }
+
+}
+
+
+// ==========================================
+// POPULATE ASSIGNERS
+// ==========================================
+function populateAssigners(assigners) {
+
+    const select =
+      document.getElementById(
+        "assign"
+      );
+
+    // CLEAR OPTIONS
+    select.innerHTML = "";
+
+    // DEFAULT OPTION
+    const defaultOption =
+      document.createElement(
+        "option"
+      );
+
+    defaultOption.value = "";
+
+    defaultOption.text =
+      "Select Assigner";
+
+    select.appendChild(
+      defaultOption
+    );
+
+    // ADD OPTIONS
+    assigners.forEach(item => {
+
+        const name =
+          item.Assigners;
+
+        const option =
+          document.createElement(
+            "option"
+          );
+
+        option.value = name;
+
+        option.text = name;
+
+        select.appendChild(
+          option
+        );
+
+    });
+
+    // ONLY DESTROY IF EXISTS
+    if (
+      $('#assign').hasClass(
+        "select2-hidden-accessible"
+      )
+    ) {
+
+        $('#assign').select2(
+          'destroy'
+        );
+
+    }
+
+    // INIT SELECT2
+    $('#assign').select2({
+
+        placeholder:
+          "Select Assigned By",
+
+        allowClear: true,
+
+        width: '100%'
+
+    });
+
+}
+
+
+// ==========================================
+// POPULATE DOERS
+// ==========================================
+function populateDoers(doers) {
+
+    const select =
+      document.getElementById("doer");
+
+    // CLEAR OPTIONS
+    select.innerHTML = "";
+
+    // DEFAULT OPTION
+    const defaultOption =
+      document.createElement("option");
+
+    defaultOption.value = "";
+
+    defaultOption.text =
+      "Select Doer";
+
+    select.appendChild(
+      defaultOption
+    );
+
+    // ADD OPTIONS
+    doers.forEach(item => {
+
+        const name =
+          item.Doers;
+
+        const option =
+          document.createElement(
+            "option"
+          );
+
+        option.value = name;
+
+        option.text = name;
+
+        select.appendChild(
+          option
+        );
+
+    });
+
+    // ONLY DESTROY IF EXISTS
+    if (
+      $('#doer').hasClass(
+        "select2-hidden-accessible"
+      )
+    ) {
+
+        $('#doer').select2(
+          'destroy'
+        );
+
+    }
+
+    // INIT SELECT2
+    $('#doer').select2({
+
+        placeholder:
+          "Select a Doer",
+
+        allowClear: true,
+
+        width: '100%'
+
+    });
+
+}
+
+
+// ==========================================
+// AUDIO RECORDING
+// ==========================================
+
+let mediaRecorder;
+let audioChunks = [];
+let audioBase64 = "";
+let recording = false;
+
+function toggleRecording() {
+
+  let button =
+    document.getElementById(
+      "recordBtn"
+    );
+
+  if (recording) {
+
+    mediaRecorder.stop();
+
+    button.innerHTML =
+      "🎤 Tap to Record";
+
+    button.classList.remove(
+      "bg-red-500"
+    );
+
+    recording = false;
+
+  } else {
+
+    navigator.mediaDevices
+      .getUserMedia({
+        audio: true
+      })
+
+      .then(stream => {
+
+        mediaRecorder =
+          new MediaRecorder(stream);
+
+        mediaRecorder.start();
+
+        audioChunks = [];
+
+        recording = true;
+
+        button.innerHTML =
+          "🔴 Recording... Tap to Stop";
+
+        button.classList.add(
+          "bg-red-500"
+        );
+
+        mediaRecorder.ondataavailable =
+          event => {
+
+            audioChunks.push(
+              event.data
+            );
+
+          };
+
+        mediaRecorder.onstop =
+          () => {
+
+            const audioBlob =
+              new Blob(
+                audioChunks,
+                {
+                  type:
+                    "audio/webm"
+                }
+              );
+
+            const reader =
+              new FileReader();
+
+            reader.readAsDataURL(
+              audioBlob
+            );
+
+            reader.onloadend =
+              () => {
+
+                audioBase64 =
+                  reader.result.split(
+                    ","
+                  )[1];
+
+              };
+
+            let audioElement =
+              document.getElementById(
+                "audioPlayback"
+              );
+
+            audioElement.src =
+              URL.createObjectURL(
+                audioBlob
+              );
+
+            audioElement.classList.remove(
+              "hidden"
+            );
+
+          };
+
+      })
+
+      .catch(error => {
+
+        console.error(error);
+
+        alert(
+          "Microphone access denied"
+        );
+
+      });
+
+  }
+
+}
+
+
+// ==========================================
+// SUBMIT FORM
+// ==========================================
+async function submitForm() {
+
+  const doer =
+    document.getElementById(
+      "doer"
+    )?.value || "";
+
+  const task =
+    document.getElementById(
+      "task"
+    )?.value || "";
+
+  const date =
+    document.getElementById(
+      "date"
+    )?.value || "";
+
+  const assby =
+    document.getElementById(
+      "assign"
+    )?.value || "";
+
+  const submitBtn =
+    document.getElementById(
+      "submitBtn"
+    );
+
+  // VALIDATION
+
+  if (
+    !doer ||
+    !task ||
+    !date ||
+    !assby
+  ) {
+
+    alert(
+      "Please fill all required fields."
+    );
+
+    return;
+
+  }
+
+  // BUTTON LOADING
+
+  submitBtn.disabled = true;
+
+  submitBtn.innerHTML =
+    "Submitting...";
+
+  submitBtn.classList.add(
+    "opacity-50",
+    "cursor-not-allowed"
+  );
+
+  // FORM DATA
+
+  const formData =
+    new FormData();
+
+  formData.append(
+    "action",
+    "submitTask"
+  );
+
+  formData.append(
+    "doer",
+    doer
+  );
+
+  formData.append(
+    "task",
+    task
+  );
+
+  formData.append(
+    "date",
+    date
+  );
+
+  formData.append(
+    "assby",
+    assby
+  );
+
+  formData.append(
+    "audio",
+    audioBase64
+  );
+
+  formData.append(
+    "filename",
+    `audio_${Date.now()}.webm`
+  );
+
+  try {
+
+    await fetch(
+      APPS_SCRIPT_API,
+      {
+
+        method: "POST",
+
+        mode: "no-cors",
+
+        body: formData
+
+      }
+    );
+
+    // SUCCESS
+
+    alert(
+      "✅ Task Submitted Successfully"
+    );
+
+    resetForm();
+
+  } catch (error) {
+
+    console.error(
+      "Submit Error:",
+      error
+    );
+
+    alert(
+      "Failed to submit task."
+    );
+
+  }
+
+  // ENABLE BUTTON AGAIN
+
+  submitBtn.disabled = false;
+
+  submitBtn.innerHTML =
+    "✅ Submit Task";
+
+  submitBtn.classList.remove(
+    "opacity-50",
+    "cursor-not-allowed"
+  );
+
+}
+
+
+// ==========================================
+// RESET FORM
+// ==========================================
+
+function resetForm() {
+
+  $("#doer")
+    .val(null)
+    .trigger("change");
+
+  $("#assign")
+    .val(null)
+    .trigger("change");
+
+  document.getElementById(
+    "task"
+  ).value = "";
+
+  document.getElementById(
+    "date"
+  ).value = "";
+
+  let audio =
+    document.getElementById(
+      "audioPlayback"
+    );
+
+  audio.src = "";
+
+  audio.classList.add(
+    "hidden"
+  );
+
+  audioBase64 = "";
+
+  recording = false;
+
+  const recordBtn =
+    document.getElementById(
+      "recordBtn"
+    );
+
+  recordBtn.innerHTML =
+    "🎤 Tap to Record";
+
+  recordBtn.classList.remove(
+    "bg-red-500"
+  );
+
+  // ENABLE BUTTON AGAIN
+
+  const submitBtn =
+    document.getElementById(
+      "submitBtn"
+    );
+
+  submitBtn.disabled = false;
+
+  submitBtn.innerHTML =
+    "✅ Submit Task";
+
+  submitBtn.classList.remove(
+    "opacity-50",
+    "cursor-not-allowed"
+  );
+
+}
+
+</script>
+
+</body>
+</html>
