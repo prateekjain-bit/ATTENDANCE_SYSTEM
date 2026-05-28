@@ -1,11 +1,14 @@
-
+```html
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
 <meta charset="UTF-8">
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Showroom Open Close Tracker</title>
+<title>Jewellery Showroom Tracker</title>
 
 <script src="https://cdn.tailwindcss.com"></script>
 
@@ -15,37 +18,59 @@
 
 <div class="max-w-md mx-auto bg-white rounded-3xl shadow-2xl p-5">
 
-<h1 class="text-2xl font-bold text-center text-black mb-5">
-Jewellery Showroom Tracker
+<!-- TITLE -->
+<h1 class="text-3xl font-bold text-center text-black mb-2">
+Jewellery Showroom
 </h1>
+
+<p class="text-center text-gray-500 mb-5">
+Open / Close Tracking
+</p>
 
 <!-- OPEN CLOSE -->
 <div class="grid grid-cols-2 gap-3 mb-4">
 
 <label class="cursor-pointer">
-<input type="radio" name="type" value="OPEN" checked class="hidden peer">
 
-<div class="border-2 border-green-400 rounded-2xl p-4 text-center font-bold
+<input
+type="radio"
+name="type"
+value="OPEN"
+checked
+class="hidden peer">
+
+<div
+class="border-2 border-green-400 rounded-2xl p-4 text-center font-bold
 bg-green-50 text-green-700
 peer-checked:bg-green-600
-peer-checked:text-white">
+peer-checked:text-white
+transition-all">
 
 🟢 OPEN
 
 </div>
+
 </label>
 
 <label class="cursor-pointer">
-<input type="radio" name="type" value="CLOSE" class="hidden peer">
 
-<div class="border-2 border-red-400 rounded-2xl p-4 text-center font-bold
+<input
+type="radio"
+name="type"
+value="CLOSE"
+class="hidden peer">
+
+<div
+class="border-2 border-red-400 rounded-2xl p-4 text-center font-bold
 bg-red-50 text-red-700
 peer-checked:bg-red-600
-peer-checked:text-white">
+peer-checked:text-white
+transition-all">
 
 🔴 CLOSE
 
 </div>
+
 </label>
 
 </div>
@@ -55,15 +80,17 @@ peer-checked:text-white">
 type="text"
 id="doer"
 placeholder="Enter Doer Name"
-class="w-full border-2 border-gray-200 rounded-xl p-3 mb-4">
+class="w-full border-2 border-gray-200 rounded-xl p-3 mb-4 outline-none focus:border-black">
 
 <!-- CAMERA -->
-<div class="relative w-full h-72 bg-black rounded-3xl overflow-hidden mb-4">
+<div
+class="relative w-full h-80 bg-black rounded-3xl overflow-hidden mb-4">
 
 <video
 id="video"
 autoplay
 playsinline
+muted
 class="absolute inset-0 w-full h-full object-cover">
 </video>
 
@@ -71,24 +98,40 @@ class="absolute inset-0 w-full h-full object-cover">
 id="preview"
 class="absolute inset-0 w-full h-full object-cover hidden">
 
+<div
+id="cameraStatus"
+class="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-3 py-1 rounded-full">
+
+Camera Ready
+
+</div>
+
 </div>
 
 <!-- BUTTONS -->
-<div class="grid grid-cols-2 gap-3 mb-4">
+<div class="grid grid-cols-3 gap-3 mb-4">
 
 <button
 onclick="startCamera()"
-class="bg-blue-600 text-white p-3 rounded-xl font-bold">
+class="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-xl font-bold">
 
-Start Camera
+Start
 
 </button>
 
 <button
 onclick="capturePhoto()"
-class="bg-green-600 text-white p-3 rounded-xl font-bold">
+class="bg-green-600 hover:bg-green-700 text-white p-3 rounded-xl font-bold">
 
 Capture
+
+</button>
+
+<button
+onclick="retakePhoto()"
+class="bg-yellow-500 hover:bg-yellow-600 text-white p-3 rounded-xl font-bold">
+
+Retake
 
 </button>
 
@@ -99,12 +142,13 @@ Capture
 id="remark"
 rows="3"
 placeholder="Remark (optional)"
-class="w-full border-2 border-gray-200 rounded-xl p-3 mb-4"></textarea>
+class="w-full border-2 border-gray-200 rounded-xl p-3 mb-4 outline-none focus:border-black"></textarea>
 
 <!-- SUBMIT -->
 <button
+id="submitBtn"
 onclick="submitData()"
-class="w-full bg-black text-white p-3 rounded-xl font-bold">
+class="w-full bg-black hover:bg-gray-900 text-white p-4 rounded-xl font-bold text-lg">
 
 Submit
 
@@ -118,45 +162,139 @@ class="text-center mt-4 font-semibold">
 
 </div>
 
+<!-- HIDDEN CANVAS -->
 <canvas id="canvas" class="hidden"></canvas>
 
 <script>
 
+// ======================================
+// CONFIG
+// ======================================
+
 const WEB_APP_URL =
 "https://script.google.com/macros/s/AKfycbyDs1vOfYU2ffBLYs7SWvtHQYXwzrxmGeMmmyt2wxbEKx_coFtsq5glvMgorGqCPF4/exec";
+
+
+// ======================================
+// GLOBALS
+// ======================================
 
 let stream;
 let imageData = "";
 
+
+// ======================================
+// STATUS
+// ======================================
+
+function showStatus(msg,color="green"){
+
+const status =
+document.getElementById("status");
+
+status.innerHTML = msg;
+
+status.className =
+`text-center mt-4 font-semibold text-${color}-600`;
+
+}
+
+
+// ======================================
 // START CAMERA
+// ======================================
+
 async function startCamera(){
 
 try{
 
-stream = await navigator.mediaDevices.getUserMedia({
+// STOP OLD STREAM
+if(stream){
+
+stream.getTracks().forEach(
+track=>track.stop()
+);
+
+}
+
+const video =
+document.getElementById("video");
+
+const preview =
+document.getElementById("preview");
+
+// HIDE PREVIEW
+preview.classList.add("hidden");
+
+// SHOW VIDEO
+video.classList.remove("hidden");
+
+// START CAMERA
+stream =
+await navigator.mediaDevices.getUserMedia({
 
 video:{
-facingMode:'environment',
-width:{ ideal:1280 },
-height:{ ideal:720 }
+
+facingMode:{
+ideal:"environment"
+},
+
+width:{
+ideal:1280
+},
+
+height:{
+ideal:720
+}
+
 },
 
 audio:false
 
 });
 
-document.getElementById("video").srcObject = stream;
+// ATTACH STREAM
+video.srcObject = stream;
+
+// FORCE PLAY
+await video.play();
+
+document
+.getElementById("cameraStatus")
+.innerHTML = "Camera Live";
+
+showStatus("Camera Started");
 
 }catch(err){
 
-alert(err.message);
+console.log(err);
+
+showStatus(
+"Camera Error : " + err.message,
+"red"
+);
 
 }
 
 }
 
-// CAPTURE
+
+// ======================================
+// CAPTURE PHOTO
+// ======================================
+
 function capturePhoto(){
+
+if(!stream){
+
+showStatus(
+"Start Camera First",
+"red"
+);
+
+return;
+
+}
 
 const video =
 document.getElementById("video");
@@ -167,44 +305,110 @@ document.getElementById("canvas");
 const ctx =
 canvas.getContext("2d");
 
-canvas.width = video.videoWidth;
-canvas.height = video.videoHeight;
+// VIDEO SIZE
+canvas.width =
+video.videoWidth;
 
-ctx.drawImage(video,0,0);
+canvas.height =
+video.videoHeight;
 
-ctx.fillStyle = "rgba(0,0,0,0.6)";
-ctx.fillRect(0,canvas.height-80,canvas.width,80);
+// DRAW IMAGE
+ctx.drawImage(
+video,
+0,
+0,
+canvas.width,
+canvas.height
+);
 
+// WATERMARK BG
+ctx.fillStyle =
+"rgba(0,0,0,0.6)";
+
+ctx.fillRect(
+0,
+canvas.height - 100,
+canvas.width,
+100
+);
+
+// WATERMARK TEXT
 ctx.fillStyle = "white";
-ctx.font = "24px Arial";
+
+ctx.font = "28px Arial";
 
 const type =
-document.querySelector('input[name="type"]:checked').value;
+document.querySelector(
+'input[name="type"]:checked'
+).value;
 
 ctx.fillText(
 type,
 20,
-canvas.height-45
+canvas.height - 60
 );
 
 ctx.fillText(
 new Date().toLocaleString(),
 20,
-canvas.height-15
+canvas.height - 20
 );
 
+// IMAGE
 imageData =
-canvas.toDataURL("image/jpeg",0.7);
+canvas.toDataURL(
+"image/jpeg",
+0.8
+);
 
-document.getElementById("preview").src =
+// SHOW PREVIEW
+const preview =
+document.getElementById("preview");
+
+preview.src =
 imageData;
 
-document.getElementById("preview")
-.classList.remove("hidden");
+preview.classList.remove("hidden");
+
+// HIDE VIDEO
+video.classList.add("hidden");
+
+document
+.getElementById("cameraStatus")
+.innerHTML = "Photo Captured";
+
+showStatus("Photo Captured");
 
 }
 
+
+// ======================================
+// RETAKE
+// ======================================
+
+function retakePhoto(){
+
+imageData = "";
+
+document
+.getElementById("preview")
+.classList.add("hidden");
+
+document
+.getElementById("video")
+.classList.remove("hidden");
+
+startCamera();
+
+showStatus("Retake Ready");
+
+}
+
+
+// ======================================
 // SUBMIT
+// ======================================
+
 async function submitData(){
 
 const doer =
@@ -212,22 +416,42 @@ document.getElementById("doer").value;
 
 if(!doer){
 
-alert("Enter Doer Name");
+showStatus(
+"Enter Doer Name",
+"red"
+);
+
 return;
 
 }
 
 if(!imageData){
 
-alert("Capture Photo");
+showStatus(
+"Capture Photo First",
+"red"
+);
+
 return;
 
 }
 
-document.getElementById("status")
-.innerHTML = "Submitting...";
+const submitBtn =
+document.getElementById("submitBtn");
+
+submitBtn.disabled = true;
+
+submitBtn.innerHTML =
+"Submitting...";
+
+showStatus("Uploading...");
+
+try{
 
 const payload = {
+
+timestamp:
+new Date().toLocaleString(),
 
 type:
 document.querySelector(
@@ -243,33 +467,55 @@ photo:imageData
 
 };
 
-try{
-
 const response =
-await fetch(WEB_APP_URL,{
-
+await fetch(
+WEB_APP_URL,
+{
 method:"POST",
-
 body:JSON.stringify(payload)
-
-});
+}
+);
 
 const result =
 await response.json();
 
 if(result.success){
 
-document.getElementById("status")
-.innerHTML =
-"✅ Submitted Successfully";
+showStatus(
+"Submitted Successfully"
+);
+
+submitBtn.innerHTML =
+"Submitted";
+
+submitBtn.classList.remove(
+"bg-black"
+);
+
+submitBtn.classList.add(
+"bg-green-600"
+);
+
+// STOP CAMERA
+if(stream){
+
+stream.getTracks().forEach(
+track=>track.stop()
+);
+
+}
 
 setTimeout(()=>{
+
 location.reload();
+
 },2000);
 
 }else{
 
-throw new Error(result.error);
+throw new Error(
+result.error
+);
 
 }
 
@@ -277,17 +523,34 @@ throw new Error(result.error);
 
 console.log(err);
 
-document.getElementById("status")
-.innerHTML =
-"❌ Submission Failed";
+showStatus(
+"Submission Failed",
+"red"
+);
+
+submitBtn.disabled = false;
+
+submitBtn.innerHTML =
+"Submit";
 
 }
 
 }
 
-window.onload = startCamera;
+
+// ======================================
+// AUTO START CAMERA
+// ======================================
+
+window.onload = function(){
+
+startCamera();
+
+};
 
 </script>
 
 </body>
+
 </html>
+```
