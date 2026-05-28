@@ -16,6 +16,29 @@
 
 <body class="bg-gray-100 min-h-screen p-4">
 
+<!-- LOADER -->
+<div
+id="loader"
+class="hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center">
+
+<div class="bg-white rounded-3xl px-8 py-6 shadow-2xl text-center">
+
+<div
+class="animate-spin rounded-full h-14 w-14 border-4 border-blue-200 border-t-blue-600 mx-auto">
+</div>
+
+<p class="mt-4 font-bold text-gray-700">
+Uploading...
+</p>
+
+<p class="text-sm text-gray-500">
+Please wait
+</p>
+
+</div>
+
+</div>
+
 <div class="max-w-md mx-auto bg-white rounded-3xl shadow-2xl p-5">
 
 <!-- TITLE -->
@@ -405,6 +428,15 @@ showStatus("Retake Ready");
 }
 
 
+function toggleLoader(show){
+
+document
+.getElementById("loader")
+.classList.toggle("hidden", !show);
+
+}
+
+
 // ======================================
 // SUBMIT
 // ======================================
@@ -444,6 +476,9 @@ submitBtn.disabled = true;
 submitBtn.innerHTML =
 "Submitting...";
 
+// SHOW LOADER
+toggleLoader(true);
+
 showStatus("Uploading...");
 
 try{
@@ -467,9 +502,14 @@ photo:imageData
 
 };
 
+// SMALL DELAY FOR UI RENDER
+await new Promise(resolve =>
+setTimeout(resolve, 100)
+);
+
 const response =
 await fetch(
-WEB_APP_URL,
+"https://script.google.com/macros/s/AKfycbyDs1vOfYU2ffBLYs7SWvtHQYXwzrxmGeMmmyt2wxbEKx_coFtsq5glvMgorGqCPF4/exec",
 {
 method:"POST",
 body:JSON.stringify(payload)
@@ -505,11 +545,14 @@ track=>track.stop()
 
 }
 
+// HIDE LOADER
+toggleLoader(false);
+
 setTimeout(()=>{
 
 location.reload();
 
-},2000);
+},1500);
 
 }else{
 
@@ -523,6 +566,9 @@ result.error
 
 console.log(err);
 
+// HIDE LOADER
+toggleLoader(false);
+
 showStatus(
 "Submission Failed",
 "red"
@@ -534,8 +580,8 @@ submitBtn.innerHTML =
 "Submit";
 
 }
-
 }
+
 
 
 // ======================================
