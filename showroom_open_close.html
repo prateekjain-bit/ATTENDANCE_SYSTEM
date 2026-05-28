@@ -1,16 +1,13 @@
+```html
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <meta charset="UTF-8" />
+<title>Showroom Open Close Tracker</title>
 
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1.0"/>
-
-  <title>Attendance System</title>
-
-  <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.tailwindcss.com"></script>
 
 </head>
 
@@ -18,1034 +15,280 @@
 
 <div class="max-w-md mx-auto bg-white rounded-3xl shadow-2xl p-5">
 
-  <!-- HEADER -->
-  <div class="text-center mb-5">
+<h1 class="text-2xl font-bold text-center text-black mb-5">
+Jewellery Showroom Tracker
+</h1>
 
-    <h1 class="text-3xl font-bold text-blue-700">
-      Attendance System
-    </h1>
+<!-- OPEN CLOSE -->
+<div class="grid grid-cols-2 gap-3 mb-4">
 
-    <p class="text-sm text-gray-500 mt-1">
-      Live Selfie Attendance<a href="https://prateekjain-bit.github.io/ATTENDANCE_SYSTEM/hrms_app.html" target="blank"> || Fillup Other Forms</a>
-    </p>
+<label class="cursor-pointer">
+<input type="radio" name="type" value="OPEN" checked class="hidden peer">
 
-  </div>
+<div class="border-2 border-green-400 rounded-2xl p-4 text-center font-bold
+bg-green-50 text-green-700
+peer-checked:bg-green-600
+peer-checked:text-white">
 
-  
+🟢 OPEN
 
-  <!-- EMPLOYEE ID -->
-  <input
-    type="number"
-    id="empId"
-    placeholder="Enter Employee ID"
-    onblur="fetchEmployeeDetails()"
-    class="w-full border-2 border-gray-200 focus:border-blue-500 outline-none rounded-xl p-3 mb-2"
-  >
+</div>
+</label>
 
+<label class="cursor-pointer">
+<input type="radio" name="type" value="CLOSE" class="hidden peer">
 
-  <!-- EMPLOYEE DETAILS -->
-  <div
-    id="empBox"
-    class="hidden mb-4 border border-blue-200 bg-blue-50 rounded-xl p-3">
+<div class="border-2 border-red-400 rounded-2xl p-4 text-center font-bold
+bg-red-50 text-red-700
+peer-checked:bg-red-600
+peer-checked:text-white">
 
-    <div class="flex justify-between items-center">
+🔴 CLOSE
 
-      <div>
-
-        <p
-          id="empName"
-          class="font-bold text-blue-700 text-lg">
-        </p>
-
-        <p
-          id="designation"
-          class="text-sm text-gray-600">
-        </p>
-
-      </div>
-
-      <div
-        class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold">
-
-        VERIFIED
-
-      </div>
-
-    </div>
-
-  </div>
-
-
-  <!-- SHIFT -->
-  <select
-    id="shift"
-    class="w-full border-2 border-gray-200 rounded-xl p-3 mb-3" disabled>
-
-    <option value="Morning">
-      Morning Shift
-    </option>
-
-    <option value="Evening">
-      Evening Shift
-    </option>
-
-  </select>
-
-<!-- CHECK IN / OUT -->
-<div class="mb-4">
-
-  <label class="block text-sm font-bold text-gray-700 mb-2">
-
-    Attendance Type
-
-  </label>
-
-  <div class="grid grid-cols-2 gap-3">
-
-    <!-- CHECK IN -->
-    <label
-      class="cursor-pointer">
-
-      <input
-        type="radio"
-        name="logType"
-        value="In"
-        checked
-        class="hidden peer">
-
-      <div
-        class="border-2 border-green-300 rounded-2xl p-4 text-center font-bold text-green-700 bg-green-50 peer-checked:bg-green-600 peer-checked:text-white peer-checked:border-green-600 transition-all">
-
-        ✅ CHECK IN
-
-      </div>
-
-    </label>
-
-
-    <!-- CHECK OUT -->
-    <label
-      class="cursor-pointer">
-
-      <input
-        type="radio"
-        name="logType"
-        value="Out"
-        class="hidden peer">
-
-      <div
-        class="border-2 border-red-300 rounded-2xl p-4 text-center font-bold text-red-700 bg-red-50 peer-checked:bg-red-600 peer-checked:text-white peer-checked:border-red-600 transition-all">
-
-        🚪 CHECK OUT
-
-      </div>
-
-    </label>
-
-  </div>
+</div>
+</label>
 
 </div>
 
+<!-- DOER -->
+<input
+type="text"
+id="doer"
+placeholder="Enter Doer Name"
+class="w-full border-2 border-gray-200 rounded-xl p-3 mb-4">
 
-  <!-- CAMERA CONTAINER -->
-  <div
-    class="relative w-full h-72 bg-black rounded-3xl overflow-hidden mb-4 shadow-lg">
+<!-- CAMERA -->
+<div class="relative w-full h-72 bg-black rounded-3xl overflow-hidden mb-4">
 
-    <!-- VIDEO -->
-    <video
-      id="video"
-      autoplay
-      playsinline
-      class="absolute inset-0 w-full h-full object-cover">
-    </video>
+<video
+id="video"
+autoplay
+playsinline
+class="absolute inset-0 w-full h-full object-cover">
+</video>
 
-    <!-- CAPTURED IMAGE -->
-    <img
-      id="preview"
-      class="absolute inset-0 w-full h-full object-cover hidden"
-    >
-
-    <!-- FACE FRAME -->
-    <div
-      class="absolute inset-10 border-4 border-white/40 rounded-3xl pointer-events-none">
-    </div>
-
-    <!-- STATUS -->
-    <div
-      id="cameraStatus"
-      class="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-3 py-1 rounded-full">
-
-      Camera Not Started
-
-    </div>
-
-  </div>
-
-
-  <!-- CAMERA BUTTONS -->
-  <div class="grid grid-cols-2 gap-3 mb-4">
-
-    <button
-      onclick="startCamera()"
-      class="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-xl font-semibold">
-
-      Start Camera
-
-    </button>
-
-    <button
-      onclick="capturePhoto()"
-      class="bg-green-600 hover:bg-green-700 text-white p-3 rounded-xl font-semibold">
-
-      Capture
-
-    </button>
-
-  </div>
-
-
-  <!-- LOCATION -->
-  <button
-    onclick="getLocation()"
-    class="w-full bg-purple-600 hover:bg-purple-700 text-white p-3 rounded-xl font-semibold mb-3">
-
-    Get Location
-
-  </button>
-
-
-  <!-- ADDRESS -->
-  <textarea
-    id="address"
-    readonly
-    rows="3"
-    placeholder="Location Address"
-    class="w-full border-2 border-gray-200 rounded-xl p-3 mb-4">
-  </textarea>
-
-
-  <!-- SUBMIT -->
-  <button
-    id="submitBtn"
-    onclick="submitAttendance()"
-    disabled
-    class="w-full bg-gray-400 text-white p-3 rounded-xl font-bold cursor-not-allowed transition-all">
-
-    Complete All Steps
-
-  </button>
-
-<!-- FULL SCREEN LOADER -->
-<div
-  id="loader"
-  class="hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center">
-
-  <div
-    class="bg-white rounded-3xl shadow-2xl px-8 py-6 text-center">
-
-    <!-- SPINNER -->
-    <div
-      class="animate-spin rounded-full h-14 w-14 border-4 border-blue-200 border-t-blue-600 mx-auto">
-    </div>
-
-    <!-- TEXT -->
-    <p
-      class="mt-4 text-gray-700 font-semibold text-lg">
-
-      Processing...
-
-    </p>
-
-    <p
-      class="text-sm text-gray-500 mt-1">
-
-      Please wait
-
-    </p>
-
-  </div>
+<img
+id="preview"
+class="absolute inset-0 w-full h-full object-cover hidden">
 
 </div>
 
+<!-- BUTTONS -->
+<div class="grid grid-cols-2 gap-3 mb-4">
 
+<button
+onclick="startCamera()"
+class="bg-blue-600 text-white p-3 rounded-xl font-bold">
+
+Start Camera
+
+</button>
+
+<button
+onclick="capturePhoto()"
+class="bg-green-600 text-white p-3 rounded-xl font-bold">
+
+Capture
+
+</button>
+
+</div>
+
+<!-- REMARK -->
+<textarea
+id="remark"
+rows="3"
+placeholder="Remark (optional)"
+class="w-full border-2 border-gray-200 rounded-xl p-3 mb-4"></textarea>
+
+<!-- SUBMIT -->
+<button
+onclick="submitData()"
+class="w-full bg-black text-white p-3 rounded-xl font-bold">
+
+Submit
+
+</button>
 
 <!-- STATUS -->
 <div
-  id="status"
-  class="text-center mt-4 text-sm font-semibold">
+id="status"
+class="text-center mt-4 font-semibold">
 </div>
 
 </div>
-
 
 <canvas id="canvas" class="hidden"></canvas>
 
-
 <script>
-  const LOCAL_EMPLOYEES = {
 
-  "1": {
-    employeeName: "Mr. Ashwani Sharma",
-    designation: "Senior Accountent"
-  },
-
-  "2": {
-    employeeName: "Riya Chandrakar",
-    designation: "Implementer"
-  },
-
-  "3": {
-    employeeName: "Aaditya Dev",
-    designation: "Admin"
-  },
-
-  "4": {
-    employeeName: "Mansi Nair",
-    designation: "Tele calling"
-  },
-
-  "5": {
-    employeeName: "P Tanushri",
-    designation: "Tele calling"
-  },
-
-  "6": {
-    employeeName: "Mr. Krishna Kumar Yerpude",
-    designation: "Marketing Executive"
-  },
-
-  "7": {
-    employeeName: "Mr. Radhakrishnan Nair",
-    designation: "Marketing Executive"
-  },
-
-  "8": {
-    employeeName: "Pooja Sahu",
-    designation: "Tele calling"
-  },
-
-  "9": {
-    employeeName: "Manoj Kumar Bansod",
-    designation: "Driver"
-  },
-
-  "10": {
-    employeeName: "Damendra Sahu",
-    designation: "Cashier"
-  },
-
-  "11": {
-    employeeName: "Ved Prakash Patel",
-    designation: "Office Boy"
-  }
-
-};
-
-let isSubmitting = false;
 const WEB_APP_URL =
-'https://script.google.com/macros/s/AKfycbyZ2tqCz2Ura20CtvCu-JZ3GnabyRJXAg4VdWBm7MpFvKBaefU8_Y8IpSEJvf-ZXU5H/exec';
-
+"https://script.google.com/macros/s/AKfycbyDs1vOfYU2ffBLYs7SWvtHQYXwzrxmGeMmmyt2wxbEKx_coFtsq5glvMgorGqCPF4/exec";
 
 let stream;
-let imageData = '';
+let imageData = "";
 
-let employeeName = '';
-let designation = '';
-
-let latitude = '';
-let longitude = '';
-let address = '';
-
-let employeeVerified = false;
-let selfieCaptured = false;
-let locationCaptured = false;
-
-
-
-// ======================
-// STATUS
-// ======================
-function showStatus(msg,color='green'){
-
-  const status =
-    document.getElementById('status');
-
-  status.innerHTML = msg;
-
-  status.className =
-    `text-center mt-4 text-sm font-semibold text-${color}-600`;
-}
-
-
-
-// ======================
-// LOADER
-// ======================
-function toggleLoader(show){
-
-  document
-    .getElementById('loader')
-    .classList.toggle('hidden',!show);
-}
-
-
-
-// ======================
-// VALIDATE FORM
-// ======================
-function validateForm(){
-
-  const btn =
-    document.getElementById('submitBtn');
-
-  if(
-    employeeVerified &&
-    selfieCaptured &&
-    locationCaptured
-  ){
-
-    btn.disabled = false;
-
-    btn.innerHTML =
-      'Submit Attendance';
-
-    btn.classList.remove(
-      'bg-gray-400',
-      'cursor-not-allowed'
-    );
-
-    btn.classList.add(
-      'bg-black'
-    );
-
-  }else{
-
-    btn.disabled = true;
-
-    btn.innerHTML =
-      'Complete All Steps';
-
-    btn.classList.add(
-      'bg-gray-400',
-      'cursor-not-allowed'
-    );
-
-    btn.classList.remove(
-      'bg-black'
-    );
-  }
-}
-
-
-
-// ======================
-// FETCH EMPLOYEE
-// ======================
-async function fetchEmployeeDetails(){
-
-  const empId =
-    document.getElementById('empId').value;
-
-  if(!empId) return;
-
-  toggleLoader(true);
-
-  try{
-
-    // =========================
-    // CHECK LOCAL CACHE FIRST
-    // =========================
-    if(LOCAL_EMPLOYEES[empId]){
-
-      employeeName =
-        LOCAL_EMPLOYEES[empId].employeeName;
-
-      designation =
-        LOCAL_EMPLOYEES[empId].designation;
-
-      document
-        .getElementById('empName')
-        .innerHTML =
-        employeeName;
-
-      document
-        .getElementById('designation')
-        .innerHTML =
-        designation;
-
-      document
-        .getElementById('empBox')
-        .classList.remove('hidden');
-
-      employeeVerified = true;
-
-      validateForm();
-
-      showStatus(
-        'Employee Verified (Local Cache)'
-      );
-
-      toggleLoader(false);
-
-      return;
-    }
-
-
-    // =========================
-    // FETCH FROM GOOGLE SHEET
-    // =========================
-    const response =
-      await fetch(
-        `${WEB_APP_URL}?empId=${empId}`
-      );
-
-    const result =
-      await response.json();
-
-    if(result.success){
-
-      employeeName =
-        result.employeeName;
-
-      designation =
-        result.designation;
-
-      // SAVE INTO LOCAL CACHE
-      LOCAL_EMPLOYEES[empId] = {
-
-        employeeName:
-          result.employeeName,
-
-        designation:
-          result.designation
-      };
-
-      document
-        .getElementById('empName')
-        .innerHTML =
-        employeeName;
-
-      document
-        .getElementById('designation')
-        .innerHTML =
-        designation;
-
-      document
-        .getElementById('empBox')
-        .classList.remove('hidden');
-
-      employeeVerified = true;
-
-      validateForm();
-
-      showStatus(
-        'Employee Verified (Cloud)'
-      );
-
-    }else{
-
-      employeeVerified = false;
-
-      validateForm();
-
-      showStatus(
-        'Employee Not Found',
-        'red'
-      );
-    }
-
-  }catch(err){
-
-    console.log(err);
-
-    showStatus(
-      'Fetch Failed',
-      'red'
-    );
-  }
-
-  toggleLoader(false);
-}
-
-
-
-// ======================
 // START CAMERA
-// ======================
 async function startCamera(){
 
-  try{
+try{
 
-    stream =
-      await navigator.mediaDevices.getUserMedia({
+stream = await navigator.mediaDevices.getUserMedia({
 
-        video:{
-          facingMode:'user',
-          width:{ ideal:640 },
-          height:{ ideal:480 }
-        },
+video:{
+facingMode:'environment',
+width:{ ideal:1280 },
+height:{ ideal:720 }
+},
 
-        audio:false
-      });
+audio:false
 
-    document
-      .getElementById('video')
-      .srcObject = stream;
+});
 
-    document
-      .getElementById('video')
-      .classList.remove('hidden');
+document.getElementById("video").srcObject = stream;
 
-    document
-      .getElementById('preview')
-      .classList.add('hidden');
+}catch(err){
 
-    document
-      .getElementById('cameraStatus')
-      .innerHTML =
-      'Camera Live';
+alert(err.message);
 
-    showStatus(
-      'Camera Started'
-    );
-
-  }catch(err){
-
-    console.log(err);
-
-    alert(err.message);
-  }
 }
 
+}
 
-
-// ======================
-// CAPTURE PHOTO
-// ======================
+// CAPTURE
 function capturePhoto(){
 
-  if(!stream){
+const video =
+document.getElementById("video");
 
-    showStatus(
-      'Start Camera First',
-      'red'
-    );
+const canvas =
+document.getElementById("canvas");
 
-    return;
-  }
+const ctx =
+canvas.getContext("2d");
 
-  const video =
-    document.getElementById('video');
+canvas.width = video.videoWidth;
+canvas.height = video.videoHeight;
 
-  const canvas =
-    document.getElementById('canvas');
+ctx.drawImage(video,0,0);
 
-  const ctx =
-    canvas.getContext('2d');
+ctx.fillStyle = "rgba(0,0,0,0.6)";
+ctx.fillRect(0,canvas.height-80,canvas.width,80);
 
-  canvas.width = 640;
-  canvas.height = 480;
+ctx.fillStyle = "white";
+ctx.font = "24px Arial";
 
-  ctx.drawImage(
-    video,
-    0,
-    0,
-    640,
-    480
-  );
+const type =
+document.querySelector('input[name="type"]:checked').value;
 
-  // WATERMARK BG
-  ctx.fillStyle =
-    'rgba(0,0,0,0.6)';
+ctx.fillText(
+type,
+20,
+canvas.height-45
+);
 
-  ctx.fillRect(
-    0,
-    360,
-    640,
-    120
-  );
+ctx.fillText(
+new Date().toLocaleString(),
+20,
+canvas.height-15
+);
 
-  // TEXT
-  ctx.fillStyle = 'white';
+imageData =
+canvas.toDataURL("image/jpeg",0.7);
 
-  ctx.font = '20px Arial';
+document.getElementById("preview").src =
+imageData;
 
-  const timestamp =
-    new Date().toLocaleString();
+document.getElementById("preview")
+.classList.remove("hidden");
 
-  ctx.fillText(
-    `EMP ID : ${
-      document.getElementById('empId').value
-    }`,
-    20,
-    390
-  );
-
-  ctx.fillText(
-    employeeName,
-    20,
-    420
-  );
-
-  ctx.fillText(
-    timestamp,
-    20,
-    450
-  );
-
-  ctx.font = '15px Arial';
-
-  ctx.fillText(
-    address.substring(0,60),
-    20,
-    475
-  );
-
-  // COMPRESS IMAGE
-  imageData =
-    canvas.toDataURL(
-      'image/jpeg',
-      0.18
-    );
-
-  document
-    .getElementById('preview')
-    .src =
-    imageData;
-
-  document
-    .getElementById('preview')
-    .classList.remove('hidden');
-
-  document
-    .getElementById('video')
-    .classList.add('hidden');
-
-  document
-    .getElementById('cameraStatus')
-    .innerHTML =
-    'Selfie Captured';
-
-  // STOP CAMERA
-  stream.getTracks().forEach(
-    track => track.stop()
-  );
-
-  selfieCaptured = true;
-
-  validateForm();
-
-  showStatus(
-    'Selfie Captured'
-  );
 }
 
-
-
-// ======================
-// GET LOCATION
-// ======================
-function getLocation(){
-
-  if(!navigator.geolocation){
-
-    showStatus(
-      'Geolocation Not Supported',
-      'red'
-    );
-
-    return;
-  }
-
-  // SHOW FULLSCREEN LOADER
-  toggleLoader(true);
-
-  showStatus(
-    'Fetching Location...'
-  );
-
-  navigator.geolocation.getCurrentPosition(
-
-    async(pos)=>{
-
-      latitude =
-        pos.coords.latitude;
-
-      longitude =
-        pos.coords.longitude;
-
-      try{
-
-        // FETCH ADDRESS
-        const response =
-          await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
-          );
-
-        const data =
-          await response.json();
-
-        address =
-          data.display_name || '';
-
-        document
-          .getElementById('address')
-          .value =
-          address;
-
-        locationCaptured = true;
-
-        validateForm();
-
-        showStatus(
-          'Location Captured Successfully'
-        );
-
-      }catch(err){
-
-        console.log(err);
-
-        showStatus(
-          'Address Fetch Failed',
-          'red'
-        );
-      }
-
-      // HIDE LOADER
-      toggleLoader(false);
-
-    },
-
-    (error)=>{
-
-      console.log(error);
-
-      toggleLoader(false);
-
-      showStatus(
-        'Location Permission Denied',
-        'red'
-      );
-
-    },
-
-    {
-      enableHighAccuracy:true,
-      timeout:15000,
-      maximumAge:0
-    }
-
-  );
-}
-
-
-
-// ======================
 // SUBMIT
-// ======================
-async function submitAttendance(){
+async function submitData(){
 
-  // PREVENT MULTIPLE CLICKS
-  if(isSubmitting){
-    return;
-  }
+const doer =
+document.getElementById("doer").value;
 
-  if(
-    !employeeVerified ||
-    !selfieCaptured ||
-    !locationCaptured
-  ){
+if(!doer){
 
-    showStatus(
-      'Complete All Steps',
-      'red'
-    );
+alert("Enter Doer Name");
+return;
 
-    return;
-  }
-
-  isSubmitting = true;
-
-  const btn =
-    document.getElementById('submitBtn');
-
-  // DISABLE BUTTON
-  btn.disabled = true;
-
-  btn.innerHTML =
-    'Submitting...';
-
-  btn.classList.add(
-    'opacity-70'
-  );
-
-  toggleLoader(true);
-
-  try{
-
-    const payload = {
-
-      empId:
-        document.getElementById('empId').value,
-
-      employeeName,
-
-      designation,
-
-      shift:
-        document.getElementById('shift').value,
-
-      logType:
-        document.querySelector(
-          'input[name="logType"]:checked'
-        ).value,
-
-      latitude,
-      longitude,
-      address,
-
-      selfie:imageData
-    };
-
-    const response =
-      await fetch(
-        WEB_APP_URL,
-        {
-          method:'POST',
-          body:JSON.stringify(payload)
-        }
-      );
-
-    const result =
-      await response.json();
-
-    if(result.success){
-
-      showStatus(
-        'Attendance Submitted Successfully'
-      );
-
-      btn.innerHTML =
-        'Submitted Successfully';
-
-      btn.classList.remove(
-        'bg-black'
-      );
-
-      btn.classList.add(
-        'bg-green-600'
-      );
-
-      // OPTIONAL RELOAD
-      setTimeout(()=>{
-
-        location.reload();
-
-      },2000);
-
-    }else{
-
-      throw new Error(
-        result.error
-      );
-    }
-
-  }catch(err){
-
-    console.log(err);
-
-    showStatus(
-      'Submission Failed',
-      'red'
-    );
-
-    // ENABLE AGAIN IF FAILED
-    isSubmitting = false;
-
-    btn.disabled = false;
-
-    btn.innerHTML =
-      'Submit Attendance';
-
-    btn.classList.remove(
-      'opacity-70'
-    );
-  }
-
-  toggleLoader(false);
 }
 
-window.onload = async function(){
+if(!imageData){
 
-  // AUTO CAMERA PERMISSION
-  try{
+alert("Capture Photo");
+return;
 
-    stream =
-      await navigator.mediaDevices.getUserMedia({
+}
 
-        video:true,
-        audio:false
+document.getElementById("status")
+.innerHTML = "Submitting...";
 
-      });
+const payload = {
 
-    document
-      .getElementById('video')
-      .srcObject = stream;
+type:
+document.querySelector(
+'input[name="type"]:checked'
+).value,
 
-    document
-      .getElementById('cameraStatus')
-      .innerHTML =
-      'Camera Ready';
+doer,
 
-  }catch(err){
+remark:
+document.getElementById("remark").value,
 
-    console.log(err);
+photo:imageData
 
-    showStatus(
-      'Camera Permission Denied',
-      'red'
-    );
-  }
-
-
-  // AUTO LOCATION PERMISSION
-  if(navigator.geolocation){
-
-    navigator.geolocation.getCurrentPosition(
-
-      function(pos){
-
-        latitude =
-          pos.coords.latitude;
-
-        longitude =
-          pos.coords.longitude;
-
-        locationCaptured = true;
-
-        validateForm();
-
-      },
-
-      function(err){
-
-        console.log(err);
-
-        showStatus(
-          'Location Permission Denied',
-          'red'
-        );
-      },
-
-      {
-        enableHighAccuracy:true
-      }
-
-    );
-  }
 };
+
+try{
+
+const response =
+await fetch(WEB_APP_URL,{
+
+method:"POST",
+
+body:JSON.stringify(payload)
+
+});
+
+const result =
+await response.json();
+
+if(result.success){
+
+document.getElementById("status")
+.innerHTML =
+"✅ Submitted Successfully";
+
+setTimeout(()=>{
+location.reload();
+},2000);
+
+}else{
+
+throw new Error(result.error);
+
+}
+
+}catch(err){
+
+console.log(err);
+
+document.getElementById("status")
+.innerHTML =
+"❌ Submission Failed";
+
+}
+
+}
+
+window.onload = startCamera;
 
 </script>
 
 </body>
 </html>
+```
