@@ -1,0 +1,933 @@
+
+<!DOCTYPE html>
+<html>
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0">
+
+  <title>HR Management Portal</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+</head>
+
+<body class="bg-gray-100 min-h-screen p-4">
+
+<div class="max-w-md mx-auto bg-white rounded-3xl shadow-2xl p-5">
+
+  <!-- HEADER -->
+  <div class="text-center mb-5">
+
+    <h1 class="text-3xl font-bold text-blue-700">
+      HR Management
+    </h1>
+
+    <p class="text-sm text-gray-500 mt-1">
+      Multi Purpose HR Portal
+    </p>
+
+  </div>
+
+
+  <!-- EMPLOYEE ID -->
+  <input
+    type="number"
+    id="empId"
+    placeholder="Enter Employee ID"
+    onblur="fetchEmployeeDetails()"
+    class="w-full border-2 border-gray-200 rounded-xl p-3 mb-2 outline-none focus:border-blue-500">
+
+
+  <!-- EMPLOYEE DETAILS -->
+  <div
+    id="empBox"
+    class="hidden mb-4 border border-blue-200 bg-blue-50 rounded-xl p-3">
+
+    <div class="flex justify-between items-center">
+
+      <div>
+
+        <p
+          id="empName"
+          class="font-bold text-blue-700 text-lg">
+        </p>
+
+        <p
+          id="designation"
+          class="text-sm text-gray-600">
+        </p>
+
+      </div>
+
+      <div
+        class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold">
+
+        VERIFIED
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+
+  <!-- FORM TYPE -->
+  <select
+    id="requestType"
+    onchange="changeForm()"
+    class="w-full border-2 border-gray-200 rounded-xl p-3 mb-4">
+
+    <option value="">
+      Select Form Type
+    </option>
+
+    <option value="mis">
+      MIS Punch
+    </option>
+
+    <option value="leave">
+      Leave Application
+    </option>
+
+    <option value="late">
+      Late Coming
+    </option>
+
+    <option value="early">
+      Early Going
+    </option>
+
+    <option value="gatepass">
+      Gate Pass
+    </option>
+
+    <option value="exception">
+      Exception Form
+    </option>
+
+  </select>
+
+
+
+  <!-- DYNAMIC FORM AREA -->
+  <div id="dynamicFields"></div>
+
+
+
+  <!-- CAMERA -->
+  <div
+    class="relative w-full h-72 bg-black rounded-3xl overflow-hidden mb-4 shadow-lg">
+
+    <!-- VIDEO -->
+    <video
+      id="video"
+      autoplay
+      playsinline
+      class="absolute inset-0 w-full h-full object-cover">
+    </video>
+
+    <!-- IMAGE -->
+    <img
+      id="preview"
+      class="absolute inset-0 w-full h-full object-cover hidden">
+
+    <!-- FRAME -->
+    <div
+      class="absolute inset-10 border-4 border-white/40 rounded-3xl pointer-events-none">
+    </div>
+
+    <!-- STATUS -->
+    <div
+      id="cameraStatus"
+      class="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-3 py-1 rounded-full">
+
+      Camera Not Started
+
+    </div>
+
+  </div>
+
+
+
+  <!-- CAMERA BUTTONS -->
+  <div class="grid grid-cols-2 gap-3 mb-4">
+
+    <button
+      onclick="startCamera()"
+      class="bg-blue-600 text-white p-3 rounded-xl font-semibold">
+
+      Start Camera
+
+    </button>
+
+    <button
+      onclick="capturePhoto()"
+      class="bg-green-600 text-white p-3 rounded-xl font-semibold">
+
+      Capture
+
+    </button>
+
+  </div>
+
+
+
+  <!-- SUBMIT -->
+  <button
+    id="submitBtn"
+    onclick="submitForm()"
+    disabled
+    class="w-full bg-gray-400 text-white p-3 rounded-xl font-bold cursor-not-allowed">
+
+    Complete All Steps
+
+  </button>
+
+
+
+  <!-- LOADER -->
+  <div
+    id="loader"
+    class="hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center">
+
+    <div
+      class="bg-white rounded-3xl shadow-2xl px-8 py-6 text-center">
+
+      <div
+        class="animate-spin rounded-full h-14 w-14 border-4 border-blue-200 border-t-blue-600 mx-auto">
+      </div>
+
+      <p
+        class="mt-4 text-gray-700 font-semibold text-lg">
+
+        Processing...
+
+      </p>
+
+    </div>
+
+  </div>
+
+
+
+  <!-- STATUS -->
+  <div
+    id="status"
+    class="text-center mt-4 text-sm font-semibold">
+  </div>
+
+</div>
+
+
+<canvas id="canvas" class="hidden"></canvas>
+
+
+
+<script>
+
+const WEB_APP_URL =
+'https://script.google.com/macros/s/AKfycbwP1YsLYGTckNgbFeY_Eh6-Cx4DEaFt7_nVDmc8HRivVNjCYeh-HD-rpQZqwCvBm18/exec';
+
+
+
+// =========================
+// LOCAL EMPLOYEE CACHE
+// =========================
+const LOCAL_EMPLOYEES = {
+
+  "1":{
+    employeeName:"Mr. Ashwani Sharma",
+    designation:"Senior Accountent"
+  },
+
+  "2":{
+    employeeName:"Riya Chandrakar",
+    designation:"Implementer"
+  },
+
+  "3":{
+    employeeName:"Aaditya Dev",
+    designation:"Admin"
+  },
+
+  "4":{
+    employeeName:"Mansi Nair",
+    designation:"Tele calling"
+  },
+
+  "5":{
+    employeeName:"P Tanushri",
+    designation:"Tele calling"
+  },
+
+  "6":{
+    employeeName:"Mr. Krishna Kumar Yerpude",
+    designation:"Marketing Executive"
+  },
+
+  "7":{
+    employeeName:"Mr. Radhakrishnan Nair",
+    designation:"Marketing Executive"
+  },
+
+  "8":{
+    employeeName:"Pooja Sahu",
+    designation:"Tele calling"
+  },
+
+  "9":{
+    employeeName:"Manoj Kumar Bansod",
+    designation:"Driver"
+  },
+
+  "10":{
+    employeeName:"Damendra Sahu",
+    designation:"Cashier"
+  },
+
+  "11":{
+    employeeName:"Ved Prakash Patel",
+    designation:"Office Boy"
+  }
+
+};
+
+
+
+let stream;
+let imageData = '';
+
+let employeeName = '';
+let designation = '';
+
+let employeeVerified = false;
+let selfieCaptured = false;
+let isSubmitting = false;
+
+
+
+// =========================
+// STATUS
+// =========================
+function showStatus(msg,color='green'){
+
+  const status =
+    document.getElementById('status');
+
+  status.innerHTML = msg;
+
+  status.className =
+    `text-center mt-4 text-sm font-semibold text-${color}-600`;
+}
+
+
+
+// =========================
+// LOADER
+// =========================
+function toggleLoader(show){
+
+  document
+    .getElementById('loader')
+    .classList.toggle('hidden',!show);
+}
+
+
+
+// =========================
+// VALIDATE
+// =========================
+function validateForm(){
+
+  const requestType =
+    document.getElementById('requestType').value;
+
+  const btn =
+    document.getElementById('submitBtn');
+
+  if(
+    employeeVerified &&
+    selfieCaptured &&
+    requestType
+  ){
+
+    btn.disabled = false;
+
+    btn.innerHTML =
+      'Submit Request';
+
+    btn.classList.remove(
+      'bg-gray-400',
+      'cursor-not-allowed'
+    );
+
+    btn.classList.add(
+      'bg-black'
+    );
+
+  }else{
+
+    btn.disabled = true;
+
+    btn.innerHTML =
+      'Complete All Steps';
+
+    btn.classList.add(
+      'bg-gray-400',
+      'cursor-not-allowed'
+    );
+  }
+}
+
+
+
+// =========================
+// FETCH EMPLOYEE
+// =========================
+async function fetchEmployeeDetails(){
+
+  const empId =
+    document.getElementById('empId').value;
+
+  if(!empId) return;
+
+  if(LOCAL_EMPLOYEES[empId]){
+
+    employeeName =
+      LOCAL_EMPLOYEES[empId].employeeName;
+
+    designation =
+      LOCAL_EMPLOYEES[empId].designation;
+
+    document
+      .getElementById('empName')
+      .innerHTML =
+      employeeName;
+
+    document
+      .getElementById('designation')
+      .innerHTML =
+      designation;
+
+    document
+      .getElementById('empBox')
+      .classList.remove('hidden');
+
+    employeeVerified = true;
+
+    validateForm();
+
+    showStatus(
+      'Employee Verified'
+    );
+
+  }else{
+
+    showStatus(
+      'Employee Not Found',
+      'red'
+    );
+  }
+}
+
+
+
+// =========================
+// CHANGE FORM
+// =========================
+function changeForm(){
+
+  const type =
+    document.getElementById('requestType').value;
+
+  const box =
+    document.getElementById('dynamicFields');
+
+  let html = '';
+
+
+
+  // MIS
+  if(type === 'mis'){
+
+    html = `
+
+      <div class="mb-4">
+
+        <label class="font-bold text-sm">
+          Punch Type
+        </label>
+
+        <select
+          id="misType"
+          class="w-full border-2 border-gray-200 rounded-xl p-3 mt-1">
+
+          <option value="IN">
+            IN
+          </option>
+
+          <option value="OUT">
+            OUT
+          </option>
+
+        </select>
+
+      </div>
+
+      <textarea
+        id="reason"
+        placeholder="Reason"
+        class="w-full border-2 border-gray-200 rounded-xl p-3 mb-4">
+      </textarea>
+    `;
+  }
+
+
+
+  // LEAVE
+  if(type === 'leave'){
+
+    html = `
+
+      <input
+        type="date"
+        id="fromDate"
+        class="w-full border-2 border-gray-200 rounded-xl p-3 mb-3">
+
+      <input
+        type="date"
+        id="toDate"
+        class="w-full border-2 border-gray-200 rounded-xl p-3 mb-3">
+
+      <textarea
+        id="reason"
+        placeholder="Leave Reason"
+        class="w-full border-2 border-gray-200 rounded-xl p-3 mb-4">
+      </textarea>
+    `;
+  }
+
+
+
+  // LATE
+  if(type === 'late'){
+
+    html = `
+
+      <input
+        type="time"
+        id="arrivalTime"
+        class="w-full border-2 border-gray-200 rounded-xl p-3 mb-3">
+
+      <textarea
+        id="reason"
+        placeholder="Reason"
+        class="w-full border-2 border-gray-200 rounded-xl p-3 mb-4">
+      </textarea>
+    `;
+  }
+
+
+
+  // EARLY
+  if(type === 'early'){
+
+    html = `
+
+      <input
+        type="time"
+        id="leaveTime"
+        class="w-full border-2 border-gray-200 rounded-xl p-3 mb-3">
+
+      <textarea
+        id="reason"
+        placeholder="Reason"
+        class="w-full border-2 border-gray-200 rounded-xl p-3 mb-4">
+      </textarea>
+    `;
+  }
+
+
+
+  // GATEPASS
+  if(type === 'gatepass'){
+
+    html = `
+
+      <input
+        type="time"
+        id="outTime"
+        class="w-full border-2 border-gray-200 rounded-xl p-3 mb-3">
+
+      <input
+        type="time"
+        id="returnTime"
+        class="w-full border-2 border-gray-200 rounded-xl p-3 mb-3">
+
+      <textarea
+        id="reason"
+        placeholder="Purpose"
+        class="w-full border-2 border-gray-200 rounded-xl p-3 mb-4">
+      </textarea>
+    `;
+  }
+
+
+
+  // EXCEPTION
+  if(type === 'exception'){
+
+    html = `
+
+      <textarea
+        id="reason"
+        placeholder="Exception Details"
+        class="w-full border-2 border-gray-200 rounded-xl p-3 mb-4">
+      </textarea>
+    `;
+  }
+
+  box.innerHTML = html;
+
+  validateForm();
+}
+
+
+
+// =========================
+// CAMERA
+// =========================
+async function startCamera(){
+
+  try{
+
+    stream =
+      await navigator.mediaDevices.getUserMedia({
+
+        video:true,
+        audio:false
+
+      });
+
+    document
+      .getElementById('video')
+      .srcObject = stream;
+
+    document
+      .getElementById('preview')
+      .classList.add('hidden');
+
+    document
+      .getElementById('video')
+      .classList.remove('hidden');
+
+    document
+      .getElementById('cameraStatus')
+      .innerHTML =
+      'Camera Live';
+
+  }catch(err){
+
+    console.log(err);
+
+    alert(err.message);
+  }
+}
+
+
+
+// =========================
+// CAPTURE
+// =========================
+function capturePhoto(){
+
+  if(!stream){
+
+    showStatus(
+      'Start Camera First',
+      'red'
+    );
+
+    return;
+  }
+
+  const video =
+    document.getElementById('video');
+
+  const canvas =
+    document.getElementById('canvas');
+
+  const ctx =
+    canvas.getContext('2d');
+
+  canvas.width = 640;
+  canvas.height = 480;
+
+  ctx.drawImage(
+    video,
+    0,
+    0,
+    640,
+    480
+  );
+
+  // WATERMARK
+  ctx.fillStyle =
+    'rgba(0,0,0,0.6)';
+
+  ctx.fillRect(
+    0,
+    360,
+    640,
+    120
+  );
+
+  ctx.fillStyle =
+    'white';
+
+  ctx.font =
+    '20px Arial';
+
+  const timestamp =
+    new Date().toLocaleString();
+
+  ctx.fillText(
+    employeeName,
+    20,
+    400
+  );
+
+  ctx.fillText(
+    timestamp,
+    20,
+    435
+  );
+
+  ctx.fillText(
+    document.getElementById('requestType').value.toUpperCase(),
+    20,
+    470
+  );
+
+  imageData =
+    canvas.toDataURL(
+      'image/jpeg',
+      0.18
+    );
+
+  document
+    .getElementById('preview')
+    .src =
+    imageData;
+
+  document
+    .getElementById('preview')
+    .classList.remove('hidden');
+
+  document
+    .getElementById('video')
+    .classList.add('hidden');
+
+  stream.getTracks().forEach(
+    track => track.stop()
+  );
+
+  selfieCaptured = true;
+
+  validateForm();
+
+  showStatus(
+    'Selfie Captured'
+  );
+}
+
+
+
+// =========================
+// SUBMIT
+// =========================
+async function submitForm(){
+
+  if(isSubmitting){
+    return;
+  }
+
+  isSubmitting = true;
+
+  toggleLoader(true);
+
+  const requestType =
+    document.getElementById('requestType').value;
+
+  let formData = {};
+
+
+
+  // MIS
+  if(requestType === 'mis'){
+
+    formData = {
+
+      punchType:
+        document.getElementById('misType').value,
+
+      reason:
+        document.getElementById('reason').value
+    };
+  }
+
+
+
+  // LEAVE
+  if(requestType === 'leave'){
+
+    formData = {
+
+      fromDate:
+        document.getElementById('fromDate').value,
+
+      toDate:
+        document.getElementById('toDate').value,
+
+      reason:
+        document.getElementById('reason').value
+    };
+  }
+
+
+
+  // LATE
+  if(requestType === 'late'){
+
+    formData = {
+
+      arrivalTime:
+        document.getElementById('arrivalTime').value,
+
+      reason:
+        document.getElementById('reason').value
+    };
+  }
+
+
+
+  // EARLY
+  if(requestType === 'early'){
+
+    formData = {
+
+      leaveTime:
+        document.getElementById('leaveTime').value,
+
+      reason:
+        document.getElementById('reason').value
+    };
+  }
+
+
+
+  // GATEPASS
+  if(requestType === 'gatepass'){
+
+    formData = {
+
+      outTime:
+        document.getElementById('outTime').value,
+
+      returnTime:
+        document.getElementById('returnTime').value,
+
+      reason:
+        document.getElementById('reason').value
+    };
+  }
+
+
+
+  // EXCEPTION
+  if(requestType === 'exception'){
+
+    formData = {
+
+      reason:
+        document.getElementById('reason').value
+    };
+  }
+
+
+
+  const payload = {
+
+    formType:
+      requestType,
+
+    empId:
+      "APPLICATION_"+document.getElementById('empId').value,
+
+    employeeName,
+    designation,
+
+    formData,
+
+    selfie:imageData
+  };
+
+
+
+  try{
+
+    const response =
+      await fetch(
+        WEB_APP_URL,
+        {
+          method:'POST',
+          body:JSON.stringify(payload)
+        }
+      );
+
+    const result =
+      await response.json();
+
+    if(result.success){
+
+      showStatus(
+        'Request Submitted Successfully'
+      );
+
+      setTimeout(()=>{
+
+        location.reload();
+
+      },2000);
+
+    }else{
+
+      showStatus(
+        result.error,
+        'red'
+      );
+    }
+
+  }catch(err){
+
+    console.log(err);
+
+    showStatus(
+      'Submission Failed',
+      'red'
+    );
+  }
+
+  toggleLoader(false);
+}
+
+</script>
+
+</body>
+</html>
