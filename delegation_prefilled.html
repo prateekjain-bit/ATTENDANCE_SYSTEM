@@ -61,14 +61,17 @@
 const SPREADSHEET_ID =
   "1x83mZ5tp1h6xEcTaZuhgWeTtC4SN_Nd5uhNF7FURtJw";
 
+const API_KEY = "AIzaSyAzmQRWDI4y4lD3r30PaeRD1TgbkfcCcHM";
+
 const DOERS_API =
-  `https://opensheet.elk.sh/${SPREADSHEET_ID}/Doers`;
+  `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/Doers!A:A?key=${API_KEY}`;
 
 const ASSIGNERS_API =
-  `https://opensheet.elk.sh/${SPREADSHEET_ID}/Assigners`;
+  `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/Assigners!A:A?key=${API_KEY}`;
 
 const APPS_SCRIPT_API =
   "https://script.google.com/macros/s/AKfycbyBY4WlHKmJ2RvCxpZmX2AG6Bk4cUsQtYZW9UE1f-r9v0ZRU3_qVgSrWCaB31ge-m0/exec";
+
 
 
 
@@ -179,17 +182,29 @@ function prefillForm() {
 // ==========================================
 // FETCH DOERS
 // ==========================================
+function sheetToJson(values) {
+  const headers = values[0];
 
+  return values.slice(1).map(row => {
+    let obj = {};
+
+    headers.forEach((header, index) => {
+      obj[header] = row[index] || "";
+    });
+
+    return obj;
+  });
+}
 async function fetchDoers() {
-
   try {
 
-    const response =
-      await fetch(DOERS_API);
+    const response = await fetch(DOERS_API);
+    const data = await response.json();
 
-    const doers =
-      await response.json();
-console.log(doers)
+    const doers = sheetToJson(data.values || []);
+
+    console.log(doers);
+
     populateDoers(doers);
 
   } catch (error) {
@@ -200,7 +215,6 @@ console.log(doers)
     );
 
   }
-
 }
 
 
@@ -209,14 +223,12 @@ console.log(doers)
 // ==========================================
 
 async function fetchAssigners() {
-
   try {
 
-    const response =
-      await fetch(ASSIGNERS_API);
+    const response = await fetch(ASSIGNERS_API);
+    const data = await response.json();
 
-    const assigners =
-      await response.json();
+    const assigners = sheetToJson(data.values || []);
 
     populateAssigners(assigners);
 
@@ -228,7 +240,6 @@ async function fetchAssigners() {
     );
 
   }
-
 }
 
 
