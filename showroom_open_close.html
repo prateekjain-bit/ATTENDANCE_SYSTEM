@@ -49,52 +49,44 @@ Jewellery Showroom
 <p class="text-center text-gray-500 mb-5">
 Open / Close Tracking
 </p>
-
-<!-- OPEN CLOSE -->
+<!-- ACTIVITY TYPE -->
 <div class="grid grid-cols-2 gap-3 mb-4">
 
-<label class="cursor-pointer">
+  <label class="cursor-pointer">
+    <input type="radio" name="type" value="KEY PICKUP FROM SOURCE" checked class="hidden peer">
+    <div class="border-2 border-yellow-400 rounded-2xl p-4 text-center font-bold
+      bg-yellow-50 text-yellow-700
+      peer-checked:bg-yellow-500 peer-checked:text-white">
+      🔑 KEY PICKUP
+    </div>
+  </label>
 
-<input
-type="radio"
-name="type"
-value="OPEN"
-checked
-class="hidden peer">
+  <label class="cursor-pointer">
+    <input type="radio" name="type" value="SHOWROOM OPEN" class="hidden peer">
+    <div class="border-2 border-green-400 rounded-2xl p-4 text-center font-bold
+      bg-green-50 text-green-700
+      peer-checked:bg-green-600 peer-checked:text-white">
+      🟢 OPEN
+    </div>
+  </label>
 
-<div
-class="border-2 border-green-400 rounded-2xl p-4 text-center font-bold
-bg-green-50 text-green-700
-peer-checked:bg-green-600
-peer-checked:text-white
-transition-all">
+  <label class="cursor-pointer">
+    <input type="radio" name="type" value="SHOWROOM CLOSE" class="hidden peer">
+    <div class="border-2 border-red-400 rounded-2xl p-4 text-center font-bold
+      bg-red-50 text-red-700
+      peer-checked:bg-red-600 peer-checked:text-white">
+      🔴 CLOSE
+    </div>
+  </label>
 
-🟢 OPEN
-
-</div>
-
-</label>
-
-<label class="cursor-pointer">
-
-<input
-type="radio"
-name="type"
-value="CLOSE"
-class="hidden peer">
-
-<div
-class="border-2 border-red-400 rounded-2xl p-4 text-center font-bold
-bg-red-50 text-red-700
-peer-checked:bg-red-600
-peer-checked:text-white
-transition-all">
-
-🔴 CLOSE
-
-</div>
-
-</label>
+  <label class="cursor-pointer">
+    <input type="radio" name="type" value="KEY DROP TO DESTINATION" class="hidden peer">
+    <div class="border-2 border-blue-400 rounded-2xl p-4 text-center font-bold
+      bg-blue-50 text-blue-700
+      peer-checked:bg-blue-600 peer-checked:text-white">
+      🔐 KEY DROP
+    </div>
+  </label>
 
 </div>
 
