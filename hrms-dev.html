@@ -774,10 +774,28 @@ async function submitForm(){
 
   toggleLoader(true);
 
+  const effectiveDate =
+  document.getElementById('effectiveDate')?.value;
+
+if (!effectiveDate) {
+
+  showStatus(
+    'Please select Effective Date',
+    'red'
+  );
+
+  toggleLoader(false);
+  isSubmitting = false;
+
+  return;
+}
+  
   const requestType =
     document.getElementById('requestType').value;
-const effectiveDate =
-  document.getElementById('effectiveDate')?.value || '';
+  
+
+
+  
   let formData = {};
 
 
