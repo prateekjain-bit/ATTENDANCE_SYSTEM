@@ -449,7 +449,19 @@ function changeForm(){
   const box =
     document.getElementById('dynamicFields');
 
-  let html = '';
+ let html = `
+  <div class="mb-4">
+    <label class="font-bold text-sm">
+      Effective Date
+    </label>
+
+    <input
+      type="date"
+      id="effectiveDate"
+      value="${new Date().toISOString().split('T')[0]}"
+      class="w-full border-2 border-gray-200 rounded-xl p-3 mt-1">
+  </div>
+`;
 
 
 
@@ -764,7 +776,8 @@ async function submitForm(){
 
   const requestType =
     document.getElementById('requestType').value;
-
+const effectiveDate =
+  document.getElementById('effectiveDate')?.value || '';
   let formData = {};
 
 
@@ -780,6 +793,7 @@ async function submitForm(){
       reason:
         document.getElementById('reason').value
     };
+    formData.effectiveDate = effectiveDate;
   }
 
 
@@ -798,6 +812,7 @@ async function submitForm(){
       reason:
         document.getElementById('reason').value
     };
+    formData.effectiveDate = effectiveDate;
   }
 
 
@@ -813,6 +828,7 @@ async function submitForm(){
       reason:
         document.getElementById('reason').value
     };
+    formData.effectiveDate = effectiveDate;
   }
 
 
@@ -828,6 +844,7 @@ async function submitForm(){
       reason:
         document.getElementById('reason').value
     };
+    formData.effectiveDate = effectiveDate;
   }
 
 
@@ -846,6 +863,7 @@ async function submitForm(){
       reason:
         document.getElementById('reason').value
     };
+    formData.effectiveDate = effectiveDate;
   }
 
 
@@ -858,6 +876,7 @@ async function submitForm(){
       reason:
         document.getElementById('reason').value
     };
+    formData.effectiveDate = effectiveDate;
   }
 
 
@@ -872,6 +891,7 @@ async function submitForm(){
 
     employeeName,
     designation,
+      effectiveDate,
 
     formData,
 
