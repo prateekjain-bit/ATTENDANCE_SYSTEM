@@ -76,7 +76,19 @@
   </div>
 
 
+<div class="mb-4">
+    <label class="font-bold text-sm">
+      Effective Date
+    </label>
 
+    <input
+      type="date"
+      id="effectiveDate"
+      value="${new Date().toISOString().split('T')[0]}"
+      class="w-full border-2 border-gray-200 rounded-xl p-3 mt-1" required>
+  </div>
+
+  
   <!-- FORM TYPE -->
   <select
     id="requestType"
@@ -449,19 +461,7 @@ function changeForm(){
   const box =
     document.getElementById('dynamicFields');
 
- let html = `
-  <div class="mb-4">
-    <label class="font-bold text-sm">
-      Effective Date
-    </label>
-
-    <input
-      type="date"
-      id="effectiveDate"
-      value="${new Date().toISOString().split('T')[0]}"
-      class="w-full border-2 border-gray-200 rounded-xl p-3 mt-1" required>
-  </div>
-`;
+ let html = '';
 
 
 
