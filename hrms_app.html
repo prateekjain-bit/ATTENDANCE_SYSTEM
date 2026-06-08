@@ -789,6 +789,28 @@ if (!effectiveDate) {
 
   return;
 }
+
+    const reasonField =
+  document.getElementById('reason');
+
+if (reasonField && !reasonField.value.trim()) {
+
+  reasonField.focus();
+
+  reasonField.classList.add(
+    'border-red-500'
+  );
+
+  showStatus(
+    'Reason is mandatory',
+    'red'
+  );
+
+  toggleLoader(false);
+  isSubmitting = false;
+
+  return;
+}
   
   const requestType =
     document.getElementById('requestType').value;
