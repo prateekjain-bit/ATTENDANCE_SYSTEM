@@ -202,7 +202,7 @@
 
 <script>
 // ====== CONFIG - EDIT THIS ======
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwgkQhk-I64le9WF3oW8y_lMKBGQR1aQIhpV8aI3nvUvWfUPIYPNQx2zfUlSKSqyyxGPA/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxlJkbqtIxhd3uCcGo-G2Klwp2Vg7-VM8CJJLFgl_hT1Qmcd2BEEZRxocya377MUYDTZg/exec';
 // =================================
 
 const DROPDOWN_KEYS = ['salesMan','item','category','purity','designQuality','shape'];
@@ -391,6 +391,7 @@ async function submitAll(){
   submitBtn.textContent = 'Submitting…';
 
   let okCount = 0;
+  let lastError = '';
   for(const card of cards){
     const item = collectItem(card);
     const payload = {
@@ -406,9 +407,19 @@ async function submitAll(){
         headers:{'Content-Type':'text/plain;charset=utf-8'}, // avoids CORS preflight
         body: JSON.stringify(payload)
       });
+      if(!res.ok){
+        lastError = 'HTTP ' + res.status + ' ' + res.statusText;
+        continue;
+      }
       const json = await res.json();
-      if(json.success) okCount++;
-    }catch(err){ /* continue with other items */ }
+      if(json.success){
+        okCount++;
+      } else {
+        lastError = json.error || 'Unknown script error';
+      }
+    }catch(err){
+      lastError = err.message || String(err);
+    }
   }
 
   submitBtn.disabled = false;
@@ -424,7 +435,7 @@ async function submitAll(){
     document.getElementById('indentNoDisplay').textContent = indentNo;
     addItem();
   } else {
-    showStatus('Saved ' + okCount + '/' + cards.length + ' items. Check connection and retry failed ones.', false);
+    showStatus('Saved ' + okCount + '/' + cards.length + ' items. Error: ' + lastError, false);
   }
 }
 
