@@ -49,6 +49,7 @@
     border-radius:8px;font-size:.95rem;background:#fff;color:var(--text);
   }
   .field input:focus,.field select:focus{outline:2px solid var(--brand);border-color:var(--brand);}
+  .field input.invalid{border-color:#c0392b;background:#fdecea;}
   .auto{background:#eef4f2;color:var(--muted);}
   .item-card{
     border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px;
@@ -131,7 +132,8 @@
       </div>
       <div class="field">
         <label>Sales Man</label>
-        <select id="salesMan"><option value="">Loading…</option></select>
+        <input type="text" id="salesMan" list="dl-salesMan" placeholder="Search or select…" autocomplete="off">
+        <datalist id="dl-salesMan"></datalist>
       </div>
     </div>
   </div>
@@ -159,15 +161,15 @@
     </div>
     <div class="grid">
       <div class="field"><label>Item</label>
-        <select data-key="item"><option value="">Select…</option></select></div>
+        <input type="text" data-key="item" list="dl-item" placeholder="Search or select…" autocomplete="off"></div>
       <div class="field"><label>Category</label>
-        <select data-key="category"><option value="">Select…</option></select></div>
+        <input type="text" data-key="category" list="dl-category" placeholder="Search or select…" autocomplete="off"></div>
       <div class="field"><label>Purity</label>
-        <select data-key="purity"><option value="">Select…</option></select></div>
+        <input type="text" data-key="purity" list="dl-purity" placeholder="Search or select…" autocomplete="off"></div>
       <div class="field"><label>Design/Quality</label>
-        <select data-key="designQuality"><option value="">Select…</option></select></div>
+        <input type="text" data-key="designQuality" list="dl-designQuality" placeholder="Search or select…" autocomplete="off"></div>
       <div class="field"><label>Shape</label>
-        <select data-key="shape"><option value="">Select…</option></select></div>
+        <input type="text" data-key="shape" list="dl-shape" placeholder="Search or select…" autocomplete="off"></div>
       <div class="field"><label>Size</label>
         <input type="text" data-key="size" placeholder="e.g. SMALL"></div>
       <div class="field"><label>Weight</label>
@@ -186,6 +188,13 @@
     </div>
   </div>
 </template>
+
+<!-- Shared datalists: one per dropdown field, filled once with data from the "Lists" sheet tab -->
+<datalist id="dl-item"></datalist>
+<datalist id="dl-category"></datalist>
+<datalist id="dl-purity"></datalist>
+<datalist id="dl-designQuality"></datalist>
+<datalist id="dl-shape"></datalist>
 
 <!-- Live camera modal (shared by all item rows, one stream at a time) -->
 <div class="camera-modal" id="cameraModal">
@@ -245,22 +254,50 @@ async function init(){
     dropdownData = dd;
     indentNo = ni.indentNo;
     document.getElementById('indentNoDisplay').textContent = indentNo;
-    populateSelect(document.getElementById('salesMan'), LIST_HEADER_MAP.salesMan);
+    Object.keys(LIST_HEADER_MAP).forEach(key=>{
+      populateDatalist(document.getElementById('dl-' + key), LIST_HEADER_MAP[key]);
+    });
+    document.getElementById('salesMan').placeholder = 'Search or select…';
+    attachListValidation(document.getElementById('salesMan'), LIST_HEADER_MAP.salesMan);
     addItem();
   }catch(err){
     showStatus('Could not load dropdown data. Check APPS_SCRIPT_URL.', false);
   }
 }
 
-function populateSelect(selectEl, headerName){
-  selectEl.innerHTML = '<option value="">Select…</option>';
+function populateDatalist(datalistEl, headerName){
+  datalistEl.innerHTML = '';
   const opts = dropdownData[headerName] || [];
   opts.forEach(v=>{
     const o = document.createElement('option');
-    o.value = v; o.textContent = v;
-    selectEl.appendChild(o);
+    o.value = v;
+    datalistEl.appendChild(o);
   });
 }
+
+// ---------- Strict list-only validation ----------
+function isAllowedValue(headerName, value){
+  if(value === '') return true; // empty is fine until submit checks required-ness
+  return (dropdownData[headerName] || []).includes(value);
+}
+
+// Clears the field if it doesn't exactly match an option from its list.
+function attachListValidation(inputEl, headerName){
+  inputEl.addEventListener('change', ()=>enforceListValue(inputEl, headerName));
+  inputEl.addEventListener('blur', ()=>enforceListValue(inputEl, headerName));
+}
+
+function enforceListValue(inputEl, headerName){
+  const val = inputEl.value.trim();
+  if(isAllowedValue(headerName, val)){
+    inputEl.classList.remove('invalid');
+  } else {
+    inputEl.classList.add('invalid');
+    inputEl.value = '';
+    showStatus('"' + val + '" is not in the list — please pick a listed option.', false);
+  }
+}
+// ---------------------------------------------------
 
 function addItem(){
   itemCount++;
@@ -270,8 +307,8 @@ function addItem(){
   node.querySelector('.item-label').textContent = 'Item #' + itemCount;
 
   ['item','category','purity','designQuality','shape'].forEach(key=>{
-    const sel = card.querySelector('select[data-key="'+key+'"]');
-    populateSelect(sel, LIST_HEADER_MAP[key]);
+    const inputEl = card.querySelector('input[data-key="'+key+'"]');
+    attachListValidation(inputEl, LIST_HEADER_MAP[key]);
   });
 
   const preview = card.querySelector('.img-preview');
@@ -383,8 +420,28 @@ async function submitAll(){
   const cards = itemsContainer.querySelectorAll('.item-card');
   if(cards.length === 0){ showStatus('Add at least one item.', false); return; }
   const date = document.getElementById('date').value;
-  const salesMan = document.getElementById('salesMan').value;
-  if(!salesMan){ showStatus('Select a Sales Man.', false); return; }
+  const salesManEl = document.getElementById('salesMan');
+  const salesMan = salesManEl.value.trim();
+  if(!salesMan || !isAllowedValue(LIST_HEADER_MAP.salesMan, salesMan)){
+    salesManEl.classList.add('invalid');
+    showStatus('Select a valid Sales Man from the list.', false);
+    salesManEl.focus();
+    return;
+  }
+
+  // Final gate: every list-driven field in every row must be blank or an exact list match.
+  for(const card of cards){
+    for(const key of ['item','category','purity','designQuality','shape']){
+      const el = card.querySelector('input[data-key="'+key+'"]');
+      const val = el.value.trim();
+      if(val && !isAllowedValue(LIST_HEADER_MAP[key], val)){
+        el.classList.add('invalid');
+        showStatus('"' + val + '" is not a listed ' + key + ' — pick a value from the list.', false);
+        el.focus();
+        return;
+      }
+    }
+  }
 
   const submitBtn = document.getElementById('submitBtn');
   submitBtn.disabled = true;
