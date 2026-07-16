@@ -198,10 +198,10 @@
     </div>
   </div>
 
-  <!-- STEP 3: PRODUCT DETAILS -->
+  <!-- STEP 3: SALESMAN NAME -->
   <div class="card">
-    <div class="step-title"><span class="badge">3</span> Product Details</div>
-    <label>Product Name</label>
+    <div class="step-title"><span class="badge">3</span>SALES MAN DETAILS</div>
+    <label>SALES MAN NAME</label>
     <input type="text" id="productName" placeholder="e.g. Gold Necklace 22K">
     <label>Notes (optional)</label>
     <textarea id="notes" placeholder="Weight, purity, batch, remarks..."></textarea>
@@ -488,7 +488,7 @@ submitBtn.addEventListener("click", async () => {
 
 function resetForm() {
   qrManualEl.value = "";
-  document.getElementById("productName").value = "";
+  // document.getElementById("productName").value = "";
   document.getElementById("notes").value = "";
   qrResultEl.classList.remove("show");
   capturedDataUrl = null;
