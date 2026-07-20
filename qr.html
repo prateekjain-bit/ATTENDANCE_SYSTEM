@@ -68,20 +68,6 @@
     margin: -4px 0 10px;
     line-height: 1.4;
   }
-  .divider {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin: 14px 0;
-    color: var(--muted);
-    font-size: 0.75rem;
-  }
-  .divider::before, .divider::after {
-    content: "";
-    flex: 1;
-    height: 1px;
-    background: var(--border);
-  }
   #qr-reader { width: 100%; border-radius: 10px; overflow: hidden; }
   #qr-reader img { display: none; } /* hide library's default icon */
   #qr-reader-file { display: none; }
@@ -180,7 +166,7 @@
     <div id="qr-reader-file"></div>
 
     <div class="btn-row">
-      <button id="startQrBtn" class="btn-primary">Start Live Scanner</button>
+      <button id="startQrBtn" class="btn-primary">Start Scanner</button>
       <button id="stopQrBtn" class="btn-secondary" disabled>Stop Scanner</button>
       <button id="torchBtn" class="btn-torch" disabled>🔦 Torch</button>
     </div>
@@ -191,14 +177,8 @@
     </div>
 
     <div class="btn-row">
-      <button id="snapDecodeBtn" class="btn-secondary" disabled>📷 Capture &amp; Decode Still (in-page camera)</button>
+      <button id="snapDecodeBtn" class="btn-secondary" disabled>📷 Capture &amp; Decode Still</button>
     </div>
-
-    <div class="divider">OR — if focus is bad, use your phone's real camera app</div>
-    <div class="btn-row">
-      <button id="nativeQrCaptureBtn" class="btn-primary">📱 Open Phone Camera to Scan QR</button>
-    </div>
-    <input type="file" id="nativeQrInput" accept="image/*" capture="environment" style="display:none;">
 
     <div id="qrResult" class="qr-result"></div>
     <label>QR Value (auto-filled, editable — type it manually if scanning keeps failing)</label>
@@ -208,19 +188,11 @@
   <!-- STEP 2: CAMERA CAPTURE -->
   <div class="card">
     <div class="step-title"><span class="badge">2</span> Capture Product Photo</div>
-
-    <div class="btn-row">
-      <button id="nativePhotoBtn" class="btn-primary">📱 Take Photo (Phone Camera — Recommended)</button>
-    </div>
-    <input type="file" id="nativePhotoInput" accept="image/*" capture="environment" style="display:none;">
-
-    <div class="divider">OR use in-page camera</div>
-
     <video id="video" autoplay playsinline></video>
     <canvas id="canvas"></canvas>
     <img id="capturedImg" style="display:none;">
     <div class="btn-row">
-      <button id="startCamBtn" class="btn-secondary">Start In-Page Camera</button>
+      <button id="startCamBtn" class="btn-primary">Start Camera</button>
       <button id="captureBtn" class="btn-secondary" disabled>📸 Capture</button>
       <button id="retakeBtn" class="btn-secondary" disabled>Retake</button>
     </div>
@@ -250,12 +222,11 @@
    ====================================================== */
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzjebdvxiRhzJ7UKXXZSv4j-kZJyNuia7AeZrLuMUflLm95gADcfk_wPqMvpPvnqOxL/exec";
 
-/* ---------------- QR SCANNER (live, in-page) ---------------- */
+/* ---------------- QR SCANNER (live) ---------------- */
 let html5QrCode = null;
 let torchOn = false;
 let torchSupported = false;
 let zoomSupported = false;
-let focusRetryTimer = null;
 
 const qrReaderId = "qr-reader";
 const qrResultEl = document.getElementById("qrResult");
@@ -267,31 +238,16 @@ const snapDecodeBtn = document.getElementById("snapDecodeBtn");
 const zoomRow = document.getElementById("zoomRow");
 const zoomSlider = document.getElementById("zoomSlider");
 
-// NOTE ON FOCUS: getUserMedia (the web camera API) does not get the
-// same autofocus quality as the phone's native camera app.
-//  - Android Chrome supports focusMode:"continuous" but some devices
-//    silently drop it a few seconds after the stream starts — so we
-//    re-apply it periodically below as a best-effort workaround.
-//  - iOS Safari currently does not expose ANY focus control to
-//    websites at all — this is a WebKit limitation, not something
-//    fixable from this code. On iPhones, use the "Open Phone Camera"
-//    buttons instead, which hand off to the real native camera app.
+// Config tuned for close-up, low-contrast, etched codes:
+// larger qrbox (fills more of the frame), higher fps, and the
+// native BarcodeDetector backend where the browser supports it
+// (generally more tolerant of noisy/etched patterns than the JS decoder).
 const scanConfig = {
-  fps: 10,
-  qrbox: { width: 280, height: 280 },
+  fps: 12,
+  qrbox: { width: 260, height: 260 },
   aspectRatio: 1.0,
   disableFlip: false,
-  experimentalFeatures: { useBarCodeDetectorIfSupported: true },
-  videoConstraints: {
-    facingMode: "environment",
-    width: { ideal: 1920, min: 1280 },
-    height: { ideal: 1080, min: 720 },
-    advanced: [
-      { focusMode: "continuous" },
-      { exposureMode: "continuous" },
-      { whiteBalanceMode: "continuous" }
-    ]
-  }
+  experimentalFeatures: { useBarCodeDetectorIfSupported: true }
 };
 
 startQrBtn.addEventListener("click", async () => {
@@ -302,7 +258,7 @@ startQrBtn.addEventListener("click", async () => {
       scanConfig,
       (decodedText) => {
         onQrDecoded(decodedText);
-        stopQr();
+        stopQr(); // auto-stop after successful scan
       },
       () => { /* ignore per-frame scan failures */ }
     );
@@ -310,7 +266,6 @@ startQrBtn.addEventListener("click", async () => {
     stopQrBtn.disabled = false;
     snapDecodeBtn.disabled = false;
     setupTorchAndZoom();
-    startFocusRetryLoop();
   } catch (err) {
     setStatus("Camera/QR error: " + err, "err");
   }
@@ -322,7 +277,6 @@ function stopQr() {
   if (html5QrCode) {
     html5QrCode.stop().then(() => html5QrCode.clear()).catch(() => {});
   }
-  stopFocusRetryLoop();
   startQrBtn.disabled = false;
   stopQrBtn.disabled = true;
   snapDecodeBtn.disabled = true;
@@ -337,23 +291,6 @@ function onQrDecoded(decodedText) {
   qrResultEl.textContent = "✅ Scanned: " + decodedText;
   qrResultEl.classList.add("show");
   updateSubmitState();
-}
-
-/* ---- Best-effort continuous-focus re-application (Android) ----
-   Some Android browsers drop the focusMode constraint a few seconds
-   after stream start. Re-applying every 2s costs nothing and fixes
-   it on the devices where it matters. Harmless no-op elsewhere. */
-function startFocusRetryLoop() {
-  stopFocusRetryLoop();
-  focusRetryTimer = setInterval(async () => {
-    if (!html5QrCode) return;
-    try {
-      await html5QrCode.applyVideoConstraints({ advanced: [{ focusMode: "continuous" }] });
-    } catch (err) { /* not supported on this device/browser — ignore */ }
-  }, 2000);
-}
-function stopFocusRetryLoop() {
-  if (focusRetryTimer) { clearInterval(focusRetryTimer); focusRetryTimer = null; }
 }
 
 /* ---- Torch (flashlight) toggle ---- */
@@ -398,7 +335,12 @@ zoomSlider.addEventListener("input", async () => {
   } catch (err) { /* ignore */ }
 });
 
-/* ---- In-page still capture + decode (fallback #1) ---- */
+/* ---- Fallback: capture a still frame and decode it separately ----
+   Etched/low-contrast QR codes sometimes fail the live per-frame
+   scanner but decode fine from a single sharp still image, especially
+   once the torch is lighting the grooves at an angle. This grabs the
+   current video frame, sends it through Html5Qrcode.scanFile(), and
+   fills the QR field on success — without disturbing the live scan. */
 snapDecodeBtn.addEventListener("click", async () => {
   if (!html5QrCode) return;
   try {
@@ -414,6 +356,7 @@ snapDecodeBtn.addEventListener("click", async () => {
     const file = new File([blob], "qr-still.jpg", { type: "image/jpeg" });
 
     setStatus('<span class="spinner"></span> Decoding still frame...');
+    statusEl_innerHTML();
 
     const fileScanner = new Html5Qrcode("qr-reader-file");
     const result = await fileScanner.scanFile(file, false);
@@ -422,84 +365,34 @@ snapDecodeBtn.addEventListener("click", async () => {
     onQrDecoded(result);
     setStatus("✅ Decoded from still frame", "ok");
   } catch (err) {
-    setStatus("Still frame did not decode — try the native phone camera button below, or type the code manually.", "err");
+    setStatus("Still frame did not decode — try adjusting angle/torch, or type the code manually.", "err");
   }
 });
 
-/* ---- Native phone camera QR capture (fallback #2 — most reliable) ----
-   This opens the phone's actual camera app via the OS camera picker.
-   Full native autofocus/exposure/HDR — exactly the quality you get
-   in your normal camera app — because it IS your normal camera app.
-   The resulting photo is decoded the same way as the in-page still. */
-const nativeQrCaptureBtn = document.getElementById("nativeQrCaptureBtn");
-const nativeQrInput = document.getElementById("nativeQrInput");
+function statusEl_innerHTML() {
+  statusEl.className = "";
+}
 
-nativeQrCaptureBtn.addEventListener("click", () => nativeQrInput.click());
-
-nativeQrInput.addEventListener("change", async () => {
-  const file = nativeQrInput.files[0];
-  if (!file) return;
-  setStatus('<span class="spinner"></span> Decoding photo...');
-  try {
-    const fileScanner = new Html5Qrcode("qr-reader-file");
-    const result = await fileScanner.scanFile(file, false);
-    fileScanner.clear();
-    onQrDecoded(result);
-    setStatus("✅ Decoded from phone camera photo", "ok");
-  } catch (err) {
-    setStatus("Could not decode that photo — try again with better lighting/angle, or type the code manually.", "err");
-  }
-  nativeQrInput.value = "";
-});
-
-/* ---------------- PRODUCT PHOTO ---------------- */
-const capturedImg = document.getElementById("capturedImg");
-let capturedDataUrl = null;
-
-/* ---- Native phone camera capture (recommended, best focus) ---- */
-const nativePhotoBtn = document.getElementById("nativePhotoBtn");
-const nativePhotoInput = document.getElementById("nativePhotoInput");
-
-nativePhotoBtn.addEventListener("click", () => nativePhotoInput.click());
-
-nativePhotoInput.addEventListener("change", () => {
-  const file = nativePhotoInput.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    capturedDataUrl = reader.result;
-    capturedImg.src = capturedDataUrl;
-    capturedImg.style.display = "block";
-    video.style.display = "none";
-    retakeBtn.disabled = false;
-    updateSubmitState();
-  };
-  reader.readAsDataURL(file);
-  nativePhotoInput.value = "";
-});
-
-/* ---- In-page camera capture (fallback) ---- */
+/* ---------------- CAMERA CAPTURE (product photo) ---------------- */
 const video = document.getElementById("video");
 const canvas = document.getElementById("canvas");
+const capturedImg = document.getElementById("capturedImg");
 const startCamBtn = document.getElementById("startCamBtn");
 const captureBtn = document.getElementById("captureBtn");
 const retakeBtn = document.getElementById("retakeBtn");
 let currentStream = null;
+let capturedDataUrl = null;
 
 startCamBtn.addEventListener("click", async () => {
   try {
     currentStream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: "environment",
-        width: { ideal: 2560, min: 1280 },
-        height: { ideal: 1440, min: 720 },
-        advanced: [{ focusMode: "continuous" }]
-      },
+      video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 960 } },
       audio: false
     });
     video.srcObject = currentStream;
     video.style.display = "block";
     capturedImg.style.display = "none";
+    startCamBtn.disabled = true;
     captureBtn.disabled = false;
     retakeBtn.disabled = true;
   } catch (err) {
@@ -511,7 +404,7 @@ captureBtn.addEventListener("click", () => {
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
   canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
-  capturedDataUrl = canvas.toDataURL("image/jpeg", 0.92);
+  capturedDataUrl = canvas.toDataURL("image/jpeg", 0.85);
 
   capturedImg.src = capturedDataUrl;
   capturedImg.style.display = "block";
@@ -520,6 +413,7 @@ captureBtn.addEventListener("click", () => {
   stopStream();
   captureBtn.disabled = true;
   retakeBtn.disabled = false;
+  startCamBtn.disabled = false;
   updateSubmitState();
 });
 
@@ -528,6 +422,7 @@ retakeBtn.addEventListener("click", () => {
   capturedImg.style.display = "none";
   retakeBtn.disabled = true;
   updateSubmitState();
+  startCamBtn.click();
 });
 
 function stopStream() {
