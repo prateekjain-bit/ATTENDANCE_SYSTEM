@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PJ - Jewellery QR Capture</title>
+
+<!-- QR scanning library -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+<style>
+  :root {
+    --gold: #b8860b;
+    --gold-dark: #8a6508;
+    --bg: #f7f5f2;
+    --card: #ffffff;
+    --text: #2b2620;
+    --muted: #7a746a;
+    --border: #e4dfd6;
+    --ok: #1e7e34;
+    --err: #b02a2a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 16px;
+  }
+  .wrap { max-width: 480px; margin: 0 auto; }
+  h1 {
+    font-size: 1.3rem;
+    text-align: center;
+    margin: 4px 0 20px;
+    color: var(--gold-dark);
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+  }
+  .step-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .badge {
+    background: var(--gold);
+    color: #fff;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+  }
+  .hint {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin: -4px 0 10px;
+    line-height: 1.4;
+  }
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 14px 0;
+    color: var(--muted);
+    font-size: 0.75rem;
+  }
+  .divider::before, .divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+  #qr-reader { width: 100%; border-radius: 10px; overflow: hidden; }
+  #qr-reader img { display: none; } /* hide library's default icon */
+  #qr-reader-file { display: none; }
+
+  .qr-result {
+    margin-top: 10px;
+    padding: 10px 12px;
+    background: #f1f8f0;
+    border: 1px solid #cfe8cd;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    word-break: break-all;
+    display: none;
+  }
+  .qr-result.show { display: block; }
+
+  video, canvas, #capturedImg {
+    width: 100%;
+    border-radius: 10px;
+    background: #000;
+    display: block;
+  }
+  canvas { display: none; }
+
+  .btn-row { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+  button {
+    flex: 1;
+    min-width: 120px;
+    padding: 12px 14px;
+    border: none;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-primary { background: var(--gold); color: #fff; }
+  .btn-secondary { background: #efeae1; color: var(--text); }
+  .btn-torch { background: #3a3530; color: #fff; }
+  .btn-torch.on { background: #d9a021; color: #2b2620; }
+  .btn-primary:active, .btn-secondary:active, .btn-torch:active { opacity: 0.8; }
+
+  label {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin: 10px 0 4px;
+  }
+  input[type=text], textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-family: inherit;
+  }
+  input[type=range] { width: 100%; }
+  textarea { resize: vertical; min-height: 60px; }
+
+  #status {
+    text-align: center;
+    font-size: 0.9rem;
+    margin-top: 12px;
+    min-height: 20px;
+  }
+  #status.ok { color: var(--ok); }
+  #status.err { color: var(--err); }
+
+  .spinner {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid #fff;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .zoom-row { display: none; align-items: center; gap: 10px; margin-top: 8px; }
+  .zoom-row.show { display: flex; }
+  .zoom-row span { font-size: 0.8rem; color: var(--muted); white-space: nowrap; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>💎 Jewellery Product Capture - PJ</h1>
+
+  <!-- STEP 1: QR SCAN -->
+  <div class="card">
+    <div class="step-title"><span class="badge">1</span> Scan Product QR Code</div>
+    <div class="hint">For etched/engraved metal QR codes: turn on the torch and angle the tag slightly so light rakes across the grooves — straight-on light often washes them out.</div>
+    <div id="qr-reader"></div>
+    <div id="qr-reader-file"></div>
+
+    <div class="btn-row">
+      <button id="startQrBtn" class="btn-primary">Start Live Scanner</button>
+      <button id="stopQrBtn" class="btn-secondary" disabled>Stop Scanner</button>
+      <button id="torchBtn" class="btn-torch" disabled>🔦 Torch</button>
+    </div>
+
+    <div class="zoom-row" id="zoomRow">
+      <span>Zoom</span>
+      <input type="range" id="zoomSlider" min="1" max="5" step="0.1" value="1">
+    </div>
+
+    <div class="btn-row">
+      <button id="snapDecodeBtn" class="btn-secondary" disabled>📷 Capture &amp; Decode Still (in-page camera)</button>
+    </div>
+
+    <div class="divider">OR — if focus is bad, use your phone's real camera app</div>
+    <div class="btn-row">
+      <button id="nativeQrCaptureBtn" class="btn-primary">📱 Open Phone Camera to Scan QR</button>
+    </div>
+    <input type="file" id="nativeQrInput" accept="image/*" capture="environment" style="display:none;">
+
+    <div id="qrResult" class="qr-result"></div>
+    <label>QR Value (auto-filled, editable — type it manually if scanning keeps failing)</label>
+    <input type="text" id="qrManual" placeholder="Scan or type QR code value">
+  </div>
+
+  <!-- STEP 2: CAMERA CAPTURE -->
+  <div class="card">
+    <div class="step-title"><span class="badge">2</span> Capture Product Photo</div>
+
+    <div class="btn-row">
+      <button id="nativePhotoBtn" class="btn-primary">📱 Take Photo (Phone Camera — Recommended)</button>
+    </div>
+    <input type="file" id="nativePhotoInput" accept="image/*" capture="environment" style="display:none;">
+
+    <div class="divider">OR use in-page camera</div>
+
+    <video id="video" autoplay playsinline></video>
+    <canvas id="canvas"></canvas>
+    <img id="capturedImg" style="display:none;">
+    <div class="btn-row">
+      <button id="startCamBtn" class="btn-secondary">Start In-Page Camera</button>
+      <button id="captureBtn" class="btn-secondary" disabled>📸 Capture</button>
+      <button id="retakeBtn" class="btn-secondary" disabled>Retake</button>
+    </div>
+  </div>
+
+  <!-- STEP 3: SALESMAN NAME -->
+  <div class="card">
+    <div class="step-title"><span class="badge">3</span>SALES MAN DETAILS</div>
+    <label>SALES MAN NAME</label>
+    <input type="text" id="productName" placeholder="Your Name..">
+    <label>Notes (optional)</label>
+    <textarea id="notes" placeholder="Weight, purity, batch, remarks..."></textarea>
+  </div>
+
+  <!-- STEP 4: SUBMIT -->
+  <div class="card">
+    <div class="step-title"><span class="badge">4</span> Upload</div>
+    <button id="submitBtn" class="btn-primary" style="width:100%" disabled>Save to Drive &amp; Sheet</button>
+    <div id="status"></div>
+  </div>
+   <div class="step-title"><span class="badge">@</span>Managed By Prakash Jewellers</div>
+</div>
+
+<script>
+/* ======================================================
+   CONFIG — paste your deployed Apps Script Web App URL
+   ====================================================== */
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzjebdvxiRhzJ7UKXXZSv4j-kZJyNuia7AeZrLuMUflLm95gADcfk_wPqMvpPvnqOxL/exec";
+
+/* ---------------- QR SCANNER (live, in-page) ---------------- */
+let html5QrCode = null;
+let torchOn = false;
+let torchSupported = false;
+let zoomSupported = false;
+let focusRetryTimer = null;
+
+const qrReaderId = "qr-reader";
+const qrResultEl = document.getElementById("qrResult");
+const qrManualEl = document.getElementById("qrManual");
+const startQrBtn = document.getElementById("startQrBtn");
+const stopQrBtn = document.getElementById("stopQrBtn");
+const torchBtn = document.getElementById("torchBtn");
+const snapDecodeBtn = document.getElementById("snapDecodeBtn");
+const zoomRow = document.getElementById("zoomRow");
+const zoomSlider = document.getElementById("zoomSlider");
+
+// NOTE ON FOCUS: getUserMedia (the web camera API) does not get the
+// same autofocus quality as the phone's native camera app.
+//  - Android Chrome supports focusMode:"continuous" but some devices
+//    silently drop it a few seconds after the stream starts — so we
+//    re-apply it periodically below as a best-effort workaround.
+//  - iOS Safari currently does not expose ANY focus control to
+//    websites at all — this is a WebKit limitation, not something
+//    fixable from this code. On iPhones, use the "Open Phone Camera"
+//    buttons instead, which hand off to the real native camera app.
+const scanConfig = {
+  fps: 10,
+  qrbox: { width: 280, height: 280 },
+  aspectRatio: 1.0,
+  disableFlip: false,
+  experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+  videoConstraints: {
+    facingMode: "environment",
+    width: { ideal: 1920, min: 1280 },
+    height: { ideal: 1080, min: 720 },
+    advanced: [
+      { focusMode: "continuous" },
+      { exposureMode: "continuous" },
+      { whiteBalanceMode: "continuous" }
+    ]
+  }
+};
+
+startQrBtn.addEventListener("click", async () => {
+  html5QrCode = new Html5Qrcode(qrReaderId);
+  try {
+    await html5QrCode.start(
+      { facingMode: "environment" },
+      scanConfig,
+      (decodedText) => {
+        onQrDecoded(decodedText);
+        stopQr();
+      },
+      () => { /* ignore per-frame scan failures */ }
+    );
+    startQrBtn.disabled = true;
+    stopQrBtn.disabled = false;
+    snapDecodeBtn.disabled = false;
+    setupTorchAndZoom();
+    startFocusRetryLoop();
+  } catch (err) {
+    setStatus("Camera/QR error: " + err, "err");
+  }
+});
+
+stopQrBtn.addEventListener("click", stopQr);
+
+function stopQr() {
+  if (html5QrCode) {
+    html5QrCode.stop().then(() => html5QrCode.clear()).catch(() => {});
+  }
+  stopFocusRetryLoop();
+  startQrBtn.disabled = false;
+  stopQrBtn.disabled = true;
+  snapDecodeBtn.disabled = true;
+  torchBtn.disabled = true;
+  torchOn = false;
+  torchBtn.classList.remove("on");
+  zoomRow.classList.remove("show");
+}
+
+function onQrDecoded(decodedText) {
+  qrManualEl.value = decodedText;
+  qrResultEl.textContent = "✅ Scanned: " + decodedText;
+  qrResultEl.classList.add("show");
+  updateSubmitState();
+}
+
+/* ---- Best-effort continuous-focus re-application (Android) ----
+   Some Android browsers drop the focusMode constraint a few seconds
+   after stream start. Re-applying every 2s costs nothing and fixes
+   it on the devices where it matters. Harmless no-op elsewhere. */
+function startFocusRetryLoop() {
+  stopFocusRetryLoop();
+  focusRetryTimer = setInterval(async () => {
+    if (!html5QrCode) return;
+    try {
+      await html5QrCode.applyVideoConstraints({ advanced: [{ focusMode: "continuous" }] });
+    } catch (err) { /* not supported on this device/browser — ignore */ }
+  }, 2000);
+}
+function stopFocusRetryLoop() {
+  if (focusRetryTimer) { clearInterval(focusRetryTimer); focusRetryTimer = null; }
+}
+
+/* ---- Torch (flashlight) toggle ---- */
+async function setupTorchAndZoom() {
+  try {
+    const capabilities = html5QrCode.getRunningTrackCapabilities();
+    torchSupported = !!capabilities.torch;
+    zoomSupported = !!capabilities.zoom;
+
+    torchBtn.disabled = !torchSupported;
+
+    if (zoomSupported) {
+      zoomSlider.min = capabilities.zoom.min || 1;
+      zoomSlider.max = capabilities.zoom.max || 5;
+      zoomSlider.step = capabilities.zoom.step || 0.1;
+      zoomRow.classList.add("show");
+    } else {
+      zoomRow.classList.remove("show");
+    }
+  } catch (err) {
+    torchBtn.disabled = true;
+    zoomRow.classList.remove("show");
+  }
+}
+
+torchBtn.addEventListener("click", async () => {
+  if (!html5QrCode || !torchSupported) return;
+  torchOn = !torchOn;
+  try {
+    await html5QrCode.applyVideoConstraints({ advanced: [{ torch: torchOn }] });
+    torchBtn.classList.toggle("on", torchOn);
+  } catch (err) {
+    setStatus("Torch not available: " + err, "err");
+    torchOn = false;
+  }
+});
+
+zoomSlider.addEventListener("input", async () => {
+  if (!html5QrCode || !zoomSupported) return;
+  try {
+    await html5QrCode.applyVideoConstraints({ advanced: [{ zoom: parseFloat(zoomSlider.value) }] });
+  } catch (err) { /* ignore */ }
+});
+
+/* ---- In-page still capture + decode (fallback #1) ---- */
+snapDecodeBtn.addEventListener("click", async () => {
+  if (!html5QrCode) return;
+  try {
+    const videoEl = document.querySelector("#" + qrReaderId + " video");
+    if (!videoEl) throw new Error("Live video not found");
+
+    const tmpCanvas = document.createElement("canvas");
+    tmpCanvas.width = videoEl.videoWidth;
+    tmpCanvas.height = videoEl.videoHeight;
+    tmpCanvas.getContext("2d").drawImage(videoEl, 0, 0, tmpCanvas.width, tmpCanvas.height);
+
+    const blob = await new Promise(res => tmpCanvas.toBlob(res, "image/jpeg", 0.95));
+    const file = new File([blob], "qr-still.jpg", { type: "image/jpeg" });
+
+    setStatus('<span class="spinner"></span> Decoding still frame...');
+
+    const fileScanner = new Html5Qrcode("qr-reader-file");
+    const result = await fileScanner.scanFile(file, false);
+    fileScanner.clear();
+
+    onQrDecoded(result);
+    setStatus("✅ Decoded from still frame", "ok");
+  } catch (err) {
+    setStatus("Still frame did not decode — try the native phone camera button below, or type the code manually.", "err");
+  }
+});
+
+/* ---- Native phone camera QR capture (fallback #2 — most reliable) ----
+   This opens the phone's actual camera app via the OS camera picker.
+   Full native autofocus/exposure/HDR — exactly the quality you get
+   in your normal camera app — because it IS your normal camera app.
+   The resulting photo is decoded the same way as the in-page still. */
+const nativeQrCaptureBtn = document.getElementById("nativeQrCaptureBtn");
+const nativeQrInput = document.getElementById("nativeQrInput");
+
+nativeQrCaptureBtn.addEventListener("click", () => nativeQrInput.click());
+
+nativeQrInput.addEventListener("change", async () => {
+  const file = nativeQrInput.files[0];
+  if (!file) return;
+  setStatus('<span class="spinner"></span> Decoding photo...');
+  try {
+    const fileScanner = new Html5Qrcode("qr-reader-file");
+    const result = await fileScanner.scanFile(file, false);
+    fileScanner.clear();
+    onQrDecoded(result);
+    setStatus("✅ Decoded from phone camera photo", "ok");
+  } catch (err) {
+    setStatus("Could not decode that photo — try again with better lighting/angle, or type the code manually.", "err");
+  }
+  nativeQrInput.value = "";
+});
+
+/* ---------------- PRODUCT PHOTO ---------------- */
+const capturedImg = document.getElementById("capturedImg");
+let capturedDataUrl = null;
+
+/* ---- Native phone camera capture (recommended, best focus) ---- */
+const nativePhotoBtn = document.getElementById("nativePhotoBtn");
+const nativePhotoInput = document.getElementById("nativePhotoInput");
+
+nativePhotoBtn.addEventListener("click", () => nativePhotoInput.click());
+
+nativePhotoInput.addEventListener("change", () => {
+  const file = nativePhotoInput.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    capturedDataUrl = reader.result;
+    capturedImg.src = capturedDataUrl;
+    capturedImg.style.display = "block";
+    video.style.display = "none";
+    retakeBtn.disabled = false;
+    updateSubmitState();
+  };
+  reader.readAsDataURL(file);
+  nativePhotoInput.value = "";
+});
+
+/* ---- In-page camera capture (fallback) ---- */
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+const startCamBtn = document.getElementById("startCamBtn");
+const captureBtn = document.getElementById("captureBtn");
+const retakeBtn = document.getElementById("retakeBtn");
+let currentStream = null;
+
+startCamBtn.addEventListener("click", async () => {
+  try {
+    currentStream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: "environment",
+        width: { ideal: 2560, min: 1280 },
+        height: { ideal: 1440, min: 720 },
+        advanced: [{ focusMode: "continuous" }]
+      },
+      audio: false
+    });
+    video.srcObject = currentStream;
+    video.style.display = "block";
+    capturedImg.style.display = "none";
+    captureBtn.disabled = false;
+    retakeBtn.disabled = true;
+  } catch (err) {
+    setStatus("Camera access error: " + err, "err");
+  }
+});
+
+captureBtn.addEventListener("click", () => {
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
+  capturedDataUrl = canvas.toDataURL("image/jpeg", 0.92);
+
+  capturedImg.src = capturedDataUrl;
+  capturedImg.style.display = "block";
+  video.style.display = "none";
+
+  stopStream();
+  captureBtn.disabled = true;
+  retakeBtn.disabled = false;
+  updateSubmitState();
+});
+
+retakeBtn.addEventListener("click", () => {
+  capturedDataUrl = null;
+  capturedImg.style.display = "none";
+  retakeBtn.disabled = true;
+  updateSubmitState();
+});
+
+function stopStream() {
+  if (currentStream) {
+    currentStream.getTracks().forEach(t => t.stop());
+    currentStream = null;
+  }
+}
+
+/* ---------------- SUBMIT ---------------- */
+const submitBtn = document.getElementById("submitBtn");
+const statusEl = document.getElementById("status");
+
+[qrManualEl, document.getElementById("productName")].forEach(el =>
+  el.addEventListener("input", updateSubmitState)
+);
+
+function updateSubmitState() {
+  submitBtn.disabled = !(capturedDataUrl && qrManualEl.value.trim());
+}
+
+function setStatus(msg, cls) {
+  statusEl.innerHTML = msg;
+  statusEl.className = cls || "";
+}
+
+submitBtn.addEventListener("click", async () => {
+  if (!SCRIPT_URL || SCRIPT_URL.indexOf("PASTE_") === 0) {
+    setStatus("⚠️ Set SCRIPT_URL in the code first.", "err");
+    return;
+  }
+
+  submitBtn.disabled = true;
+  setStatus('<span class="spinner"></span> Uploading...');
+
+  const payload = {
+    qrData: qrManualEl.value.trim(),
+    productName: document.getElementById("productName").value.trim(),
+    notes: document.getElementById("notes").value.trim(),
+    image: capturedDataUrl
+  };
+
+  try {
+    // text/plain avoids a CORS preflight, which Apps Script doesn't handle well
+    const res = await fetch(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+
+    if (data.status === "success") {
+      setStatus("✅ Saved successfully!", "ok");
+      resetForm();
+    } else {
+      setStatus("❌ Error: " + (data.message || "unknown"), "err");
+      submitBtn.disabled = false;
+    }
+  } catch (err) {
+    setStatus("❌ Network/upload error: " + err, "err");
+    submitBtn.disabled = false;
+  }
+});
+
+function resetForm() {
+  qrManualEl.value = "";
+  // document.getElementById("productName").value = "";
+  document.getElementById("notes").value = "";
+  qrResultEl.classList.remove("show");
+  capturedDataUrl = null;
+  capturedImg.style.display = "none";
+  retakeBtn.disabled = true;
+  updateSubmitState();
+}
+</script>
+</body>
+</html>
