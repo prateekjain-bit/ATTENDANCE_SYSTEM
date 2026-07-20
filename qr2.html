@@ -166,6 +166,33 @@
   .zoom-row { display: none; align-items: center; gap: 10px; margin-top: 8px; }
   .zoom-row.show { display: flex; }
   .zoom-row span { font-size: 0.8rem; color: var(--muted); white-space: nowrap; }
+
+  /* Native-camera trigger: a <label> pointing at a hidden file input.
+     Using a label instead of button+JS .click() is the reliable
+     cross-browser way to open the camera picker — programmatic
+     .click() on file inputs is flaky on several mobile browsers,
+     especially iOS Safari. */
+  .native-btn {
+    display: block;
+    text-align: center;
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    background: var(--gold);
+    color: #fff;
+    width: 100%;
+  }
+  .native-btn:active { opacity: 0.8; }
+  .visually-hidden-file {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
 </style>
 </head>
 <body>
@@ -196,9 +223,9 @@
 
     <div class="divider">OR — if focus is bad, use your phone's real camera app</div>
     <div class="btn-row">
-      <button id="nativeQrCaptureBtn" class="btn-primary">📱 Open Phone Camera to Scan QR</button>
+      <label for="nativeQrInput" class="native-btn">📱 Open Phone Camera to Scan QR</label>
     </div>
-    <input type="file" id="nativeQrInput" accept="image/*" capture="environment" style="display:none;">
+    <input type="file" id="nativeQrInput" accept="image/*" capture="environment" class="visually-hidden-file">
 
     <div id="qrResult" class="qr-result"></div>
     <label>QR Value (auto-filled, editable — type it manually if scanning keeps failing)</label>
@@ -210,9 +237,9 @@
     <div class="step-title"><span class="badge">2</span> Capture Product Photo</div>
 
     <div class="btn-row">
-      <button id="nativePhotoBtn" class="btn-primary">📱 Take Photo (Phone Camera — Recommended)</button>
+      <label for="nativePhotoInput" class="native-btn">📱 Take Photo (Phone Camera — Recommended)</label>
     </div>
-    <input type="file" id="nativePhotoInput" accept="image/*" capture="environment" style="display:none;">
+    <input type="file" id="nativePhotoInput" accept="image/*" capture="environment" class="visually-hidden-file">
 
     <div class="divider">OR use in-page camera</div>
 
@@ -431,10 +458,7 @@ snapDecodeBtn.addEventListener("click", async () => {
    Full native autofocus/exposure/HDR — exactly the quality you get
    in your normal camera app — because it IS your normal camera app.
    The resulting photo is decoded the same way as the in-page still. */
-const nativeQrCaptureBtn = document.getElementById("nativeQrCaptureBtn");
 const nativeQrInput = document.getElementById("nativeQrInput");
-
-nativeQrCaptureBtn.addEventListener("click", () => nativeQrInput.click());
 
 nativeQrInput.addEventListener("change", async () => {
   const file = nativeQrInput.files[0];
@@ -457,10 +481,7 @@ const capturedImg = document.getElementById("capturedImg");
 let capturedDataUrl = null;
 
 /* ---- Native phone camera capture (recommended, best focus) ---- */
-const nativePhotoBtn = document.getElementById("nativePhotoBtn");
 const nativePhotoInput = document.getElementById("nativePhotoInput");
-
-nativePhotoBtn.addEventListener("click", () => nativePhotoInput.click());
 
 nativePhotoInput.addEventListener("change", () => {
   const file = nativePhotoInput.files[0];
