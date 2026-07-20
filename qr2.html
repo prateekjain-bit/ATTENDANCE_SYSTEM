@@ -86,6 +86,32 @@
   #qr-reader img { display: none; } /* hide library's default icon */
   #qr-reader-file { display: none; }
 
+  .qr-video-wrap { position: relative; }
+  .focus-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    cursor: crosshair;
+    z-index: 5;
+  }
+  .focus-ring {
+    position: absolute;
+    width: 56px; height: 56px;
+    margin-left: -28px; margin-top: -28px;
+    border: 2px solid #ffd54a;
+    border-radius: 50%;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  .focus-ring.show {
+    opacity: 1;
+    animation: focusPulse 0.6s ease-out;
+  }
+  @keyframes focusPulse {
+    0% { transform: scale(1.4); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
   .qr-result {
     margin-top: 10px;
     padding: 10px 12px;
@@ -203,8 +229,13 @@
   <div class="card">
     <div class="step-title"><span class="badge">1</span> Scan Product QR Code</div>
     <div class="hint">For etched/engraved metal QR codes: turn on the torch and angle the tag slightly so light rakes across the grooves — straight-on light often washes them out.</div>
-    <div id="qr-reader"></div>
+    <div class="qr-video-wrap">
+      <div id="qr-reader"></div>
+      <div class="focus-overlay" id="focusOverlay"></div>
+      <div class="focus-ring" id="focusRing"></div>
+    </div>
     <div id="qr-reader-file"></div>
+    <div class="hint" id="focusHint" style="display:none;">👆 Tap anywhere on the video to focus there</div>
 
     <div class="btn-row">
       <button id="startQrBtn" class="btn-primary">Start Live Scanner</button>
@@ -230,6 +261,11 @@
     <div id="qrResult" class="qr-result"></div>
     <label>QR Value (auto-filled, editable — type it manually if scanning keeps failing)</label>
     <input type="text" id="qrManual" placeholder="Scan or type QR code value">
+
+    <details style="margin-top:10px;">
+      <summary style="font-size:0.8rem;color:var(--muted);cursor:pointer;">🔧 Camera capabilities (debug — tap to expand)</summary>
+      <pre id="capabilitiesDebug" style="font-size:0.7rem;background:#f5f2ec;padding:10px;border-radius:8px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;">Start the scanner to see what your phone/browser reports.</pre>
+    </details>
   </div>
 
   <!-- STEP 2: CAMERA CAPTURE -->
@@ -338,8 +374,54 @@ startQrBtn.addEventListener("click", async () => {
     snapDecodeBtn.disabled = false;
     setupTorchAndZoom();
     startFocusRetryLoop();
+    setupTapToFocus();
   } catch (err) {
     setStatus("Camera/QR error: " + err, "err");
+  }
+});
+
+/* ---- Tap-to-focus (Android Chrome only — iOS Safari has no focus
+   API for websites at all, this is a platform limitation, not
+   something any code can work around). Tapping the video sends a
+   pointsOfInterest hint to the camera driver so it re-focuses on
+   that spot, the same way tapping the screen in a native camera
+   app does. Silently does nothing on devices that don't support it. */
+const focusOverlay = document.getElementById("focusOverlay");
+const focusRing = document.getElementById("focusRing");
+const focusHint = document.getElementById("focusHint");
+let tapToFocusSupported = false;
+
+async function setupTapToFocus() {
+  focusHint.style.display = "none";
+  try {
+    const capabilities = html5QrCode.getRunningTrackCapabilities();
+    tapToFocusSupported = !!(capabilities.pointsOfInterest || capabilities.focusDistance);
+    focusHint.style.display = tapToFocusSupported ? "block" : "none";
+  } catch (err) {
+    tapToFocusSupported = false;
+  }
+}
+
+focusOverlay.addEventListener("click", async (e) => {
+  const rect = focusOverlay.getBoundingClientRect();
+  const xNorm = (e.clientX - rect.left) / rect.width;
+  const yNorm = (e.clientY - rect.top) / rect.height;
+
+  // Visual feedback ring shows regardless, so the tap always feels responsive
+  focusRing.style.left = (e.clientX - rect.left) + "px";
+  focusRing.style.top = (e.clientY - rect.top) + "px";
+  focusRing.classList.remove("show");
+  void focusRing.offsetWidth; // restart animation
+  focusRing.classList.add("show");
+
+  if (!html5QrCode) return;
+  try {
+    await html5QrCode.applyVideoConstraints({
+      advanced: [{ pointsOfInterest: [{ x: xNorm, y: yNorm }] }]
+    });
+  } catch (err) {
+    // Not supported on this device/browser — the visual ring still
+    // gives feedback, but no actual refocus happened.
   }
 });
 
@@ -350,6 +432,7 @@ function stopQr() {
     html5QrCode.stop().then(() => html5QrCode.clear()).catch(() => {});
   }
   stopFocusRetryLoop();
+  focusHint.style.display = "none";
   startQrBtn.disabled = false;
   stopQrBtn.disabled = true;
   snapDecodeBtn.disabled = true;
@@ -400,9 +483,22 @@ async function setupTorchAndZoom() {
     } else {
       zoomRow.classList.remove("show");
     }
+
+    // Dump raw capabilities so we can see exactly what this
+    // phone/browser actually exposes, instead of guessing.
+    const debugEl = document.getElementById("capabilitiesDebug");
+    if (debugEl) {
+      const settings = html5QrCode.getRunningTrackSettings
+        ? html5QrCode.getRunningTrackSettings() : {};
+      debugEl.textContent =
+        "CAPABILITIES:\n" + JSON.stringify(capabilities, null, 2) +
+        "\n\nCURRENT SETTINGS:\n" + JSON.stringify(settings, null, 2);
+    }
   } catch (err) {
     torchBtn.disabled = true;
     zoomRow.classList.remove("show");
+    const debugEl = document.getElementById("capabilitiesDebug");
+    if (debugEl) debugEl.textContent = "Error reading capabilities: " + err;
   }
 }
 
