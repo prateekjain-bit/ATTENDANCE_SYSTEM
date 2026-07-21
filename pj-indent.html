@@ -172,8 +172,10 @@
         <input type="text" data-key="shape" list="dl-shape" placeholder="Search or select…" autocomplete="off"></div>
 
        <div class="field"><label>Design/Quality</label>
-      
-         <input type="text" data-key="designQuality" list="dl-designQuality" placeholder="Search or select…" autocomplete="off">
+
+         <input type="text"  placeholder="Enter or Type…" data-key="designQuality" list="dl-designQuality">
+         
+         <!-- <input type="text" data-key="designQuality" list="dl-designQuality" placeholder="Search or select…" autocomplete="off"> -->
       
       </div>
       
@@ -201,7 +203,7 @@
 <datalist id="dl-item"></datalist>
 <datalist id="dl-category"></datalist>
 <datalist id="dl-purity"></datalist>
-<datalist id="dl-designQuality"></datalist>
+<!-- <datalist id="dl-designQuality"></datalist> -->
 <datalist id="dl-shape"></datalist>
 
 <!-- Live camera modal (shared by all item rows, one stream at a time) -->
@@ -222,14 +224,13 @@
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxlJkbqtIxhd3uCcGo-G2Klwp2Vg7-VM8CJJLFgl_hT1Qmcd2BEEZRxocya377MUYDTZg/exec';
 // =================================
 
-const DROPDOWN_KEYS = ['salesMan','item','category','purity','designQuality','shape'];
+const DROPDOWN_KEYS = ['salesMan','item','category','purity','shape'];
 // Maps our internal keys to the column headers you use in the "Lists" sheet tab.
 const LIST_HEADER_MAP = {
   salesMan: 'SALES MAN',
   item: 'ITEM',
   category: 'CATEFORY',
   purity: 'PURITY',
-  designQuality: 'DESIGN/QUALITY',
   shape: 'SHAPE'
 };
 
@@ -314,7 +315,7 @@ function addItem(){
   card.dataset.index = itemCount;
   node.querySelector('.item-label').textContent = 'Item #' + itemCount;
 
-  ['item','category','purity','designQuality','shape'].forEach(key=>{
+  ['item','category','purity','shape'].forEach(key=>{
     const inputEl = card.querySelector('input[data-key="'+key+'"]');
     attachListValidation(inputEl, LIST_HEADER_MAP[key]);
   });
@@ -439,7 +440,7 @@ async function submitAll(){
 
   // Final gate: every list-driven field in every row must be blank or an exact list match.
   for(const card of cards){
-    for(const key of ['item','category','purity','designQuality','shape']){
+    for(const key of ['item','category','purity','shape']){
       const el = card.querySelector('input[data-key="'+key+'"]');
       const val = el.value.trim();
       if(val && !isAllowedValue(LIST_HEADER_MAP[key], val)){
