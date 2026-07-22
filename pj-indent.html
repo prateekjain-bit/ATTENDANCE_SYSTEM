@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Material Indent Form</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-rc.0/css/select2.min.css" rel="stylesheet">
 <style>
   :root{
     --brand:#0f6b53;
@@ -44,21 +45,38 @@
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
   .field{margin-bottom:12px;}
   .field label{display:block;font-size:.78rem;color:var(--muted);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.02em;}
-  .field input,.field select{
+  .field input,.field textarea{
     width:100%;padding:10px 10px;border:1px solid var(--border);
     border-radius:8px;font-size:.95rem;background:#fff;color:var(--text);
+    font-family:inherit;
   }
-  .field input:focus,.field select:focus{outline:2px solid var(--brand);border-color:var(--brand);}
-  .field input.invalid{border-color:#c0392b;background:#fdecea;}
-  .auto{background:#eef4f2;color:var(--muted);}
-  .item-card{
+  .field textarea{resize:vertical;min-height:70px;}
+  .field input:focus,.field textarea:focus{outline:2px solid var(--brand);border-color:var(--brand);}
+
+  /* --- Select2 theming to match the form --- */
+  .select2-container{width:100% !important;}
+  .select2-container .select2-selection--single{
+    height:41px;border:1px solid var(--border);border-radius:8px;
+    display:flex;align-items:center;padding:0 10px;
+  }
+  .select2-container .select2-selection--single .select2-selection__rendered{
+    padding:0;line-height:normal;color:var(--text);
+  }
+  .select2-container .select2-selection--single .select2-selection__arrow{height:39px;}
+  .select2-dropdown{border-color:var(--border);border-radius:8px;overflow:hidden;}
+  .select2-container--default .select2-results__option--highlighted[aria-selected]{
+    background-color:var(--brand);
+  }
+  .select2-selection--single.select2-invalid{border-color:#c0392b !important;background:#fdecea;}
+
+  .line-card{
     border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px;
     background:#fbfdfc;position:relative;
   }
-  .item-card .item-header{
+  .line-card .line-header{
     display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;
   }
-  .item-header span{font-weight:700;color:var(--brand-dark);font-size:.85rem;}
+  .line-header span{font-weight:700;color:var(--brand-dark);font-size:.85rem;}
   .remove-btn{
     background:none;border:none;color:#c0392b;font-size:.8rem;cursor:pointer;font-weight:600;
   }
@@ -71,7 +89,6 @@
     display:inline-block;padding:9px 14px;border-radius:8px;border:1px dashed var(--brand);
     color:var(--brand-dark);font-size:.85rem;cursor:pointer;background:#fff;
   }
-  .camera-btn.retake{border-style:solid;}
   .camera-btn.invalid{border-color:#c0392b;background:#fdecea;color:#c0392b;}
   .camera-modal{
     display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:100;
@@ -93,7 +110,7 @@
   .cam-use{background:var(--brand);color:#fff;display:none;}
   .cam-cancel{background:#3a3a3a;color:#fff;}
   .camera-hint{color:#fff;opacity:.75;font-size:.8rem;margin-top:10px;text-align:center;}
-  .add-item-btn{
+  .add-line-btn{
     width:100%;padding:12px;border-radius:10px;border:2px dashed var(--brand);
     background:#fff;color:var(--brand-dark);font-weight:600;cursor:pointer;font-size:.9rem;
   }
@@ -124,8 +141,9 @@
 
 <div class="wrap">
 
+  <!-- ===== Production details — entered ONCE per indent ===== -->
   <div class="card">
-    <h2>Indent Details</h2>
+    <h2>Production Details</h2>
     <div class="grid">
       <div class="field">
         <label>Date</label>
@@ -133,15 +151,39 @@
       </div>
       <div class="field">
         <label>Sales Man</label>
-        <input type="text" id="salesMan" list="dl-salesMan" placeholder="Search or select…" autocomplete="off">
-        <datalist id="dl-salesMan"></datalist>
+        <select id="salesMan"><option value=""></option></select>
       </div>
+      <div class="field">
+        <label>Item</label>
+        <select id="prodItem"><option value=""></option></select>
+      </div>
+      <div class="field">
+        <label>Category</label>
+        <select id="prodCategory"><option value=""></option></select>
+      </div>
+      <div class="field">
+        <label>Purity</label>
+        <select id="prodPurity"><option value=""></option></select>
+      </div>
+      <div class="field">
+        <label>Size</label>
+        <select id="prodSize"><option value=""></option></select>
+      </div>
+      <div class="field">
+        <label>Shape</label>
+        <input type="text" id="prodShape" placeholder="Type Product Shape">
+      </div>
+    </div>
+    <div class="field">
+      <label>Design / Quality</label>
+      <textarea id="prodDesignQuality" rows="3" placeholder="Enter design / quality details…"></textarea>
     </div>
   </div>
 
-  <div id="itemsContainer"></div>
+  <!-- ===== Repeatable lines: Weight / Qty / Remark / Photo ===== -->
+  <div id="linesContainer"></div>
 
-  <button class="add-item-btn" id="addItemBtn" type="button">+ Add Item</button>
+  <button class="add-line-btn" id="addLineBtn" type="button">+ Add Weight / Qty Line</button>
 
 </div>
 
@@ -153,43 +195,21 @@
   </div>
 </div>
 
-<!-- Template for one item row -->
-<template id="itemTemplate">
-  <div class="item-card">
-    <div class="item-header">
-      <span class="item-label">Item #1</span>
+<!-- Template for one weight/qty/remark/photo line -->
+<template id="lineTemplate">
+  <div class="line-card">
+    <div class="line-header">
+      <span class="line-label">Line #1</span>
       <button type="button" class="remove-btn">Remove</button>
     </div>
     <div class="grid">
-      <div class="field"><label>Item</label>
-        <input type="text" data-key="item" list="dl-item" placeholder="Search or select…" autocomplete="off"></div>
-      <div class="field"><label>Category</label>
-        <input type="text" data-key="category" list="dl-category" placeholder="Search or select…" autocomplete="off"></div>
-      <div class="field"><label>Purity</label>
-        <input type="text" data-key="purity" list="dl-purity" placeholder="Search or select…" autocomplete="off"></div>
-     
-      
-      <div class="field"><label>Size</label>
-        <input type="text" data-key="shape" list="dl-shape" placeholder="Search or select…" autocomplete="off"></div>
-
-       <div class="field"><label>Design/Quality</label>
-
-         <input type="text"  placeholder="Enter or Type…" data-key="designQuality" list="dl-designQuality">
-         
-         <!-- <input type="text" data-key="designQuality" list="dl-designQuality" placeholder="Search or select…" autocomplete="off"> -->
-      
-      </div>
-      
-      <div class="field"><label>Shape</label>
-        <input type="text" data-key="size" placeholder="Type Produc Share"></div>
-      
       <div class="field"><label>Weight</label>
         <input type="number" step="0.01" data-key="wt" placeholder="e.g. 1.5"></div>
       <div class="field"><label>Qty</label>
         <input type="number" data-key="qty" placeholder="e.g. 2"></div>
     </div>
-    <div class="field"><label>Vendor Suggestion</label>
-      <input type="text" data-key="vendorSuggestion" placeholder="e.g. saga ji"></div>
+    <div class="field"><label>Remark / Note</label>
+      <input type="text" data-key="remark" placeholder="e.g. urgent, recheck stone"></div>
     <div class="field">
       <label>Live Photo</label>
       <div class="img-row">
@@ -200,14 +220,7 @@
   </div>
 </template>
 
-<!-- Shared datalists: one per dropdown field, filled once with data from the "Lists" sheet tab -->
-<datalist id="dl-item"></datalist>
-<datalist id="dl-category"></datalist>
-<datalist id="dl-purity"></datalist>
-<!-- <datalist id="dl-designQuality"></datalist> -->
-<datalist id="dl-shape"></datalist>
-
-<!-- Live camera modal (shared by all item rows, one stream at a time) -->
+<!-- Live camera modal (shared by all lines, one stream at a time) -->
 <div class="camera-modal" id="cameraModal">
   <video id="camVideo" autoplay playsinline muted></video>
   <canvas id="camCanvas"></canvas>
@@ -220,27 +233,28 @@
   <div class="camera-hint">Point the camera at the item, then tap Capture.</div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-rc.0/js/select2.min.js"></script>
 <script>
 // ====== CONFIG - EDIT THIS ======
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxlJkbqtIxhd3uCcGo-G2Klwp2Vg7-VM8CJJLFgl_hT1Qmcd2BEEZRxocya377MUYDTZg/exec';
 // =================================
 
-const DROPDOWN_KEYS = ['salesMan','item','category','purity','shape'];
 // Maps our internal keys to the column headers you use in the "Lists" sheet tab.
 const LIST_HEADER_MAP = {
   salesMan: 'SALES MAN',
   item: 'ITEM',
   category: 'CATEFORY',
   purity: 'PURITY',
-  shape: 'SHAPE'
+  shape: 'SHAPE' // used by the "Size" field (kept consistent with existing Sheet column mapping)
 };
 
 let dropdownData = {};
 let indentNo = null;
-let itemCount = 0;
+let lineCount = 0;
 
-const itemsContainer = document.getElementById('itemsContainer');
-const template = document.getElementById('itemTemplate');
+const linesContainer = document.getElementById('linesContainer');
+const lineTemplate = document.getElementById('lineTemplate');
 const statusBox = document.getElementById('status');
 
 function todayStr(){
@@ -264,62 +278,42 @@ async function init(){
     dropdownData = dd;
     indentNo = ni.indentNo;
     document.getElementById('indentNoDisplay').textContent = indentNo;
-    Object.keys(LIST_HEADER_MAP).forEach(key=>{
-      populateDatalist(document.getElementById('dl-' + key), LIST_HEADER_MAP[key]);
-    });
-    document.getElementById('salesMan').placeholder = 'Search or select…';
-    attachListValidation(document.getElementById('salesMan'), LIST_HEADER_MAP.salesMan);
-    addItem();
+
+    setupSelect2('#salesMan', LIST_HEADER_MAP.salesMan);
+    setupSelect2('#prodItem', LIST_HEADER_MAP.item);
+    setupSelect2('#prodCategory', LIST_HEADER_MAP.category);
+    setupSelect2('#prodPurity', LIST_HEADER_MAP.purity);
+    setupSelect2('#prodSize', LIST_HEADER_MAP.shape);
+
+    addLine();
   }catch(err){
     showStatus('Could not load dropdown data. Check APPS_SCRIPT_URL.', false);
   }
 }
 
-function populateDatalist(datalistEl, headerName){
-  datalistEl.innerHTML = '';
+// Fills a <select> with the sheet's list values and turns it into a searchable
+// Select2 dropdown. Because it's a real <select> with fixed <option>s (no
+// tags:true), the user can ONLY pick a listed value — free typing is impossible.
+function setupSelect2(selector, headerName){
+  const $el = $(selector);
   const opts = dropdownData[headerName] || [];
   opts.forEach(v=>{
-    const o = document.createElement('option');
-    o.value = v;
-    datalistEl.appendChild(o);
+    $el.append(new Option(v, v, false, false));
   });
-}
-
-// ---------- Strict list-only validation ----------
-function isAllowedValue(headerName, value){
-  if(value === '') return true; // empty is fine until submit checks required-ness
-  return (dropdownData[headerName] || []).includes(value);
-}
-
-// Clears the field if it doesn't exactly match an option from its list.
-function attachListValidation(inputEl, headerName){
-  inputEl.addEventListener('change', ()=>enforceListValue(inputEl, headerName));
-  inputEl.addEventListener('blur', ()=>enforceListValue(inputEl, headerName));
-}
-
-function enforceListValue(inputEl, headerName){
-  const val = inputEl.value.trim();
-  if(isAllowedValue(headerName, val)){
-    inputEl.classList.remove('invalid');
-  } else {
-    inputEl.classList.add('invalid');
-    inputEl.value = '';
-    showStatus('"' + val + '" is not in the list — please pick a listed option.', false);
-  }
-}
-// ---------------------------------------------------
-
-function addItem(){
-  itemCount++;
-  const node = template.content.cloneNode(true);
-  const card = node.querySelector('.item-card');
-  card.dataset.index = itemCount;
-  node.querySelector('.item-label').textContent = 'Item #' + itemCount;
-
-  ['item','category','purity','shape'].forEach(key=>{
-    const inputEl = card.querySelector('input[data-key="'+key+'"]');
-    attachListValidation(inputEl, LIST_HEADER_MAP[key]);
+  $el.select2({
+    placeholder: 'Search or select…',
+    allowClear: true,
+    width: '100%'
   });
+  $el.on('select2:select', ()=> $el.next('.select2-container').find('.select2-selection--single').removeClass('select2-invalid'));
+}
+
+function addLine(){
+  lineCount++;
+  const node = lineTemplate.content.cloneNode(true);
+  const card = node.querySelector('.line-card');
+  card.dataset.index = lineCount;
+  node.querySelector('.line-label').textContent = 'Line #' + lineCount;
 
   const preview = card.querySelector('.img-preview');
   card.querySelector('[data-action="open-camera"]').addEventListener('click', ()=>{
@@ -330,10 +324,10 @@ function addItem(){
     card.remove();
   });
 
-  itemsContainer.appendChild(card);
+  linesContainer.appendChild(card);
 }
 
-document.getElementById('addItemBtn').addEventListener('click', addItem);
+document.getElementById('addLineBtn').addEventListener('click', addLine);
 
 // ---------- Live camera (video tag) ----------
 const cameraModal = document.getElementById('cameraModal');
@@ -418,7 +412,7 @@ function closeCamera(){
 }
 // ----------------------------------------------
 
-function collectItem(card){
+function collectLine(card){
   const data = {};
   card.querySelectorAll('[data-key]').forEach(el=>{
     data[el.dataset.key] = el.value;
@@ -427,36 +421,46 @@ function collectItem(card){
   return data;
 }
 
+function markSelectInvalid(selector){
+  $(selector).next('.select2-container').find('.select2-selection--single').addClass('select2-invalid');
+}
+
 async function submitAll(){
-  const cards = itemsContainer.querySelectorAll('.item-card');
-  if(cards.length === 0){ showStatus('Add at least one item.', false); return; }
+  const lines = linesContainer.querySelectorAll('.line-card');
+  if(lines.length === 0){ showStatus('Add at least one line.', false); return; }
+
   const date = document.getElementById('date').value;
-  const salesManEl = document.getElementById('salesMan');
-  const salesMan = salesManEl.value.trim();
-  if(!salesMan || !isAllowedValue(LIST_HEADER_MAP.salesMan, salesMan)){
-    salesManEl.classList.add('invalid');
-    showStatus('Select a valid Sales Man from the list.', false);
-    salesManEl.focus();
-    return;
+  const salesMan = $('#salesMan').val();
+  const item = $('#prodItem').val();
+  const category = $('#prodCategory').val();
+  const purity = $('#prodPurity').val();
+  const size = $('#prodSize').val(); // maps to SHAPE column, kept same as before
+  const designQuality = document.getElementById('prodDesignQuality').value.trim();
+  const shapeField = document.getElementById('prodShape').value.trim(); // maps to SIZE column, kept same as before
+
+  // Real <select> elements only ever hold a listed value (or empty) — just check they're filled.
+  const requiredSelects = [
+    ['#salesMan', salesMan, 'Sales Man'],
+    ['#prodItem', item, 'Item'],
+    ['#prodCategory', category, 'Category'],
+    ['#prodPurity', purity, 'Purity'],
+    ['#prodSize', size, 'Size']
+  ];
+  for(const [sel, val, label] of requiredSelects){
+    if(!val){
+      markSelectInvalid(sel);
+      showStatus('Select a ' + label + '.', false);
+      $(sel).select2('open');
+      return;
+    }
   }
 
-  // Final gate: every list-driven field in every row must be blank or an exact list match,
-  // and every row must have a captured photo.
-  for(const card of cards){
-    for(const key of ['item','category','purity','shape']){
-      const el = card.querySelector('input[data-key="'+key+'"]');
-      const val = el.value.trim();
-      if(val && !isAllowedValue(LIST_HEADER_MAP[key], val)){
-        el.classList.add('invalid');
-        showStatus('"' + val + '" is not a listed ' + key + ' — pick a value from the list.', false);
-        el.focus();
-        return;
-      }
-    }
+  // Every line must have a captured photo.
+  for(const card of lines){
     if(!card.dataset.imageBase64){
       const camBtn = card.querySelector('[data-action="open-camera"]');
       camBtn.classList.add('invalid');
-      const label = card.querySelector('.item-label').textContent;
+      const label = card.querySelector('.line-label').textContent;
       showStatus('Photo required for ' + label + ' — tap Take Photo before submitting.', false);
       camBtn.scrollIntoView({behavior:'smooth', block:'center'});
       return;
@@ -469,14 +473,18 @@ async function submitAll(){
 
   let okCount = 0;
   let lastError = '';
-  for(const card of cards){
-    const item = collectItem(card);
+  for(const card of lines){
+    const line = collectLine(card);
     const payload = {
       indentNo, date, salesMan,
-      item: item.item, category: item.category, purity: item.purity,
-      designQuality: item.designQuality, size: item.size, wt: item.wt,
-      shape: item.shape, qty: item.qty, vendorSuggestion: item.vendorSuggestion,
-      imageBase64: item.image
+      item, category, purity,
+      designQuality,
+      size: shapeField,   // SIZE column <- "Shape" free-text field
+      shape: size,        // SHAPE column <- "Size" select field
+      wt: line.wt,
+      qty: line.qty,
+      vendorSuggestion: line.remark,  // sheet column stays REMARK/NOTE, see README
+      imageBase64: line.image
     };
     try{
       const res = await fetch(APPS_SCRIPT_URL, {
@@ -502,17 +510,22 @@ async function submitAll(){
   submitBtn.disabled = false;
   submitBtn.textContent = 'Submit Indent';
 
-  if(okCount === cards.length){
-    showStatus('Saved ' + okCount + ' item(s) under Indent No ' + indentNo + '.', true);
-    itemsContainer.innerHTML = '';
-    itemCount = 0;
+  if(okCount === lines.length){
+    showStatus('Saved ' + okCount + ' line(s) under Indent No ' + indentNo + '.', true);
+    linesContainer.innerHTML = '';
+    lineCount = 0;
+    // reset production fields for the next indent
+    ['#salesMan','#prodItem','#prodCategory','#prodPurity','#prodSize'].forEach(sel=>$(sel).val(null).trigger('change'));
+    document.getElementById('prodShape').value = '';
+    document.getElementById('prodDesignQuality').value = '';
+    document.getElementById('date').value = todayStr();
     // fetch a fresh indent number for the next batch
     const ni = await fetch(APPS_SCRIPT_URL + '?action=nextIndentNo').then(r=>r.json());
     indentNo = ni.indentNo;
     document.getElementById('indentNoDisplay').textContent = indentNo;
-    addItem();
+    addLine();
   } else {
-    showStatus('Saved ' + okCount + '/' + cards.length + ' items. Error: ' + lastError, false);
+    showStatus('Saved ' + okCount + '/' + lines.length + ' lines. Error: ' + lastError, false);
   }
 }
 
