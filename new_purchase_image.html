@@ -809,7 +809,8 @@ submitBtn.addEventListener("click", async () => {
     productDetails: selectedProductDetail,
     productName: document.getElementById("productName").value.trim(),
     notes: document.getElementById("notes").value.trim(),
-    image: capturedDataUrl
+    image: capturedDataUrl,
+    ordno: document.getElementById("productDetailsSearch").value.trim()
   };
 
   try {
