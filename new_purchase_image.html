@@ -219,6 +219,42 @@
     overflow: hidden;
     pointer-events: none;
   }
+
+  /* ---- Searchable dropdown (combo box) for Product Details ---- */
+  .combo-wrap { position: relative; }
+  .combo-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    max-height: 220px;
+    overflow-y: auto;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.1);
+    z-index: 20;
+  }
+  .combo-dropdown.show { display: block; }
+  .combo-item {
+    padding: 10px 12px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+  }
+  .combo-item:last-child { border-bottom: none; }
+  .combo-item:hover, .combo-item:active { background: #f4efe6; }
+  .combo-empty {
+    padding: 10px 12px;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .combo-loading {
+    padding: 10px 12px;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
 </style>
 </head>
 <body>
@@ -289,18 +325,29 @@
     </div>
   </div>
 
-  <!-- STEP 3: SALESMAN NAME -->
+  <!-- STEP 3: PRODUCT DETAILS (searchable dropdown, sourced from "pending_upload" sheet) -->
   <div class="card">
-    <div class="step-title"><span class="badge">3</span>SALES MAN DETAILS</div>
+    <div class="step-title"><span class="badge">3</span> Product Details</div>
+    <label>Search &amp; select product</label>
+    <div class="combo-wrap">
+      <input type="text" id="productDetailsSearch" placeholder="Tap to search pending_upload list..." autocomplete="off">
+      <div id="productDetailsDropdown" class="combo-dropdown"></div>
+    </div>
+    <div class="hint" id="productDetailsHint">Loading list from Google Sheet...</div>
+  </div>
+
+  <!-- STEP 4: SALESMAN NAME -->
+  <div class="card">
+    <div class="step-title"><span class="badge">4</span>SALES MAN DETAILS</div>
     <label>SALES MAN NAME</label>
     <input type="text" id="productName" placeholder="Your Name..">
     <label>Notes (optional)</label>
     <textarea id="notes" placeholder="Weight, purity, batch, remarks..."></textarea>
   </div>
 
-  <!-- STEP 4: SUBMIT -->
+  <!-- STEP 5: SUBMIT -->
   <div class="card">
-    <div class="step-title"><span class="badge">4</span> Upload</div>
+    <div class="step-title"><span class="badge">5</span> Upload</div>
     <button id="submitBtn" class="btn-primary" style="width:100%" disabled>Save to Drive &amp; Sheet</button>
     <div id="status"></div>
   </div>
@@ -311,7 +358,7 @@
 /* ======================================================
    CONFIG — paste your deployed Apps Script Web App URL
    ====================================================== */
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzjebdvxiRhzJ7UKXXZSv4j-kZJyNuia7AeZrLuMUflLm95gADcfk_wPqMvpPvnqOxL/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx8Ze_nZt3VXDarrc8WLGhDYwWOidepCseMGO6GDl94_B09wB26oOVr3TwQtNyfkAMT/exec";
 
 /* ---------------- QR SCANNER (live, in-page) ---------------- */
 let html5QrCode = null;
@@ -654,6 +701,81 @@ function stopStream() {
   }
 }
 
+/* ---------------- PRODUCT DETAILS — searchable dropdown ----------------
+   Options are pulled from the "pending_upload" sheet via a GET request
+   to the same Apps Script Web App (?action=getPendingUploads). The
+   Apps Script side needs a doGet() handler added — see the snippet
+   provided alongside this file. By default this reads column A of
+   pending_upload, skipping the header row (row 1). Adjust the range
+   in doGet() if your values live in a different column. */
+let pendingUploadOptions = [];
+let selectedProductDetail = "";
+
+const pdSearch = document.getElementById("productDetailsSearch");
+const pdDropdown = document.getElementById("productDetailsDropdown");
+const pdHint = document.getElementById("productDetailsHint");
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[c]));
+}
+
+async function loadPendingUploads() {
+  try {
+    const res = await fetch(SCRIPT_URL + "?action=getPendingUploads");
+    const data = await res.json();
+    if (data.status === "success") {
+      pendingUploadOptions = data.items || [];
+      pdHint.textContent = pendingUploadOptions.length
+        ? `${pendingUploadOptions.length} item(s) loaded from pending_upload.`
+        : "pending_upload sheet has no items yet.";
+    } else {
+      pdHint.textContent = "Could not load list: " + (data.message || "unknown error");
+    }
+  } catch (err) {
+    pdHint.textContent = "Could not load list (network/CORS error). You can still type a value manually.";
+  }
+}
+loadPendingUploads();
+
+function renderProductDropdown(filterText) {
+  const q = filterText.trim().toLowerCase();
+  const matches = q
+    ? pendingUploadOptions.filter(o => String(o).toLowerCase().includes(q))
+    : pendingUploadOptions;
+
+  if (!matches.length) {
+    pdDropdown.innerHTML = '<div class="combo-empty">No matches</div>';
+  } else {
+    pdDropdown.innerHTML = matches
+      .slice(0, 50)
+      .map(o => `<div class="combo-item">${escapeHtml(o)}</div>`)
+      .join("");
+  }
+  pdDropdown.classList.add("show");
+}
+
+pdSearch.addEventListener("focus", () => renderProductDropdown(pdSearch.value));
+pdSearch.addEventListener("input", () => {
+  selectedProductDetail = ""; // typing invalidates the previous selection until re-picked
+  renderProductDropdown(pdSearch.value);
+  updateSubmitState();
+});
+
+pdDropdown.addEventListener("click", (e) => {
+  const item = e.target.closest(".combo-item");
+  if (!item) return;
+  selectedProductDetail = item.textContent;
+  pdSearch.value = selectedProductDetail;
+  pdDropdown.classList.remove("show");
+  updateSubmitState();
+});
+
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".combo-wrap")) pdDropdown.classList.remove("show");
+});
+
 /* ---------------- SUBMIT ---------------- */
 const submitBtn = document.getElementById("submitBtn");
 const statusEl = document.getElementById("status");
@@ -663,7 +785,9 @@ const statusEl = document.getElementById("status");
 );
 
 function updateSubmitState() {
-  submitBtn.disabled = !(capturedDataUrl && qrManualEl.value.trim());
+  // Product Details is required, same as QR + photo. If you'd rather
+  // make it optional, drop the "&& selectedProductDetail" clause below.
+  submitBtn.disabled = !(capturedDataUrl && qrManualEl.value.trim() && selectedProductDetail);
 }
 
 function setStatus(msg, cls) {
@@ -682,6 +806,7 @@ submitBtn.addEventListener("click", async () => {
 
   const payload = {
     qrData: qrManualEl.value.trim(),
+    productDetails: selectedProductDetail,
     productName: document.getElementById("productName").value.trim(),
     notes: document.getElementById("notes").value.trim(),
     image: capturedDataUrl
@@ -717,6 +842,9 @@ function resetForm() {
   capturedDataUrl = null;
   capturedImg.style.display = "none";
   retakeBtn.disabled = true;
+  pdSearch.value = "";
+  selectedProductDetail = "";
+  pdDropdown.classList.remove("show");
   updateSubmitState();
 }
 </script>
