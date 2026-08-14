@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Company Directory</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=Inter:wght@400;500;600;700&family=Oswald:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --board-bg:#14171c;
+    --board-bg-alt:#1b1f26;
+    --rail:#2b313b;
+    --tile-bg:#f4efe2;
+    --tile-bg-hover:#fbf7ec;
+    --ink:#23262b;
+    --ink-dim:#6b6459;
+    --amber:#e8a33d;
+    --amber-dim:#a97427;
+    --amber-glow:rgba(232,163,61,0.35);
+    --steel:#4a5568;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 600px at 50% -10%, #20242c 0%, var(--board-bg) 55%),
+      repeating-linear-gradient(180deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 1px, transparent 1px, transparent 3px);
+    color:var(--tile-bg);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    padding:0 0 80px;
+  }
+
+  header{
+    padding:56px 24px 32px;
+    text-align:center;
+    border-bottom:1px solid var(--rail);
+    position:relative;
+  }
+  header::after{
+    content:'';
+    position:absolute; left:50%; bottom:-1px; transform:translateX(-50%);
+    width:120px; height:3px; background:var(--amber);
+    box-shadow:0 0 16px 2px var(--amber-glow);
+  }
+  .eyebrow{
+    font-family:'Oswald',sans-serif;
+    letter-spacing:0.35em;
+    font-size:11px;
+    color:var(--amber);
+    text-transform:uppercase;
+    margin:0 0 10px;
+  }
+  h1{
+    font-family:'Big Shoulders Display',sans-serif;
+    font-weight:800;
+    font-size:clamp(38px,7vw,72px);
+    letter-spacing:0.02em;
+    text-transform:uppercase;
+    margin:0;
+    line-height:0.95;
+    color:var(--tile-bg);
+    text-shadow:0 0 24px rgba(244,239,226,0.12);
+  }
+  .subhead{
+    font-family:'Oswald',sans-serif;
+    font-size:13px;
+    letter-spacing:0.12em;
+    color:#8b93a1;
+    text-transform:uppercase;
+    margin-top:12px;
+  }
+
+  .controls{
+    max-width:640px;
+    margin:28px auto 0;
+    display:flex;
+    gap:12px;
+    padding:0 16px;
+  }
+  #search{
+    flex:1;
+    background:var(--board-bg-alt);
+    border:1px solid var(--rail);
+    color:var(--tile-bg);
+    font-family:'Oswald',sans-serif;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    font-size:13px;
+    padding:12px 16px;
+    border-radius:2px;
+    outline:none;
+  }
+  #search::placeholder{color:#5b6270;}
+  #search:focus{border-color:var(--amber-dim); box-shadow:0 0 0 1px var(--amber-dim);}
+  #refreshBtn{
+    background:transparent;
+    border:1px solid var(--rail);
+    color:var(--amber);
+    font-family:'Oswald',sans-serif;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    font-size:12px;
+    padding:0 18px;
+    border-radius:2px;
+    cursor:pointer;
+    transition:border-color .15s, color .15s;
+  }
+  #refreshBtn:hover{border-color:var(--amber); color:#f4c37c;}
+
+  #status{
+    text-align:center;
+    font-family:'Oswald',sans-serif;
+    letter-spacing:0.15em;
+    text-transform:uppercase;
+    font-size:13px;
+    color:#8b93a1;
+    padding:64px 16px;
+  }
+  #status.error{color:#e07856;}
+  #status a{color:var(--amber);}
+
+  main{max-width:100%; margin:0 auto; padding:0 20px;}
+
+  .tree-wrap{
+    margin-top:48px;
+    overflow-x:auto;
+    padding-bottom:24px;
+  }
+  .unlinked-note{
+    max-width:1180px;
+    margin:20px auto 0;
+    font-family:'Oswald',sans-serif;
+    font-size:11px;
+    letter-spacing:0.08em;
+    color:#8b93a1;
+    text-transform:uppercase;
+    text-align:center;
+  }
+
+  /* Classic recursive CSS org-tree: each level is a <ul>, each person a <li> */
+  .org-tree, .org-tree ul{
+    display:flex;
+    justify-content:center;
+    padding-top:32px;
+    position:relative;
+    width:max-content;
+    margin:0 auto;
+  }
+  .org-tree{ padding-top:0; }
+  .org-tree li{
+    list-style:none;
+    position:relative;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:32px 14px 0 14px;
+  }
+  .org-tree > li{ padding-top:0; }
+
+  .org-tree li::before,
+  .org-tree li::after{
+    content:'';
+    position:absolute;
+    top:0;
+    width:50%;
+    height:32px;
+    border-top:2px solid var(--amber-dim);
+  }
+  .org-tree li::before{ right:50%; border-right:2px solid var(--amber-dim); }
+  .org-tree li::after{ left:50%; border-left:2px solid var(--amber-dim); }
+  .org-tree li:only-child::before,
+  .org-tree li:only-child::after{ display:none; }
+  .org-tree li:only-child{ padding-top:0; }
+  .org-tree li:first-child::before{ border:none; }
+  .org-tree li:last-child::after{ border:none; }
+  .org-tree li:last-child::before{ border-radius:0 4px 0 0; }
+  .org-tree li:first-child::after{ border-radius:4px 0 0 0; }
+  .org-tree > li::before,
+  .org-tree > li::after{ display:none; }
+
+  .org-tree li > ul::before{
+    content:'';
+    position:absolute;
+    top:-32px; left:50%;
+    width:0; height:32px;
+    border-left:2px solid var(--amber-dim);
+  }
+  .org-tree li.leaf > ul{ display:none; }
+
+  .tile{
+    position:relative;
+    width:148px;
+    background:var(--tile-bg);
+    border:1px solid #d8cfb6;
+    border-radius:3px;
+    padding:14px 10px 12px;
+    text-align:center;
+    box-shadow:0 6px 0 rgba(0,0,0,0.28), inset 0 0 0 1px rgba(255,255,255,0.4);
+    transition:transform .15s ease, box-shadow .15s ease, background .15s ease, opacity .15s ease;
+  }
+  .tile:hover{
+    transform:translateY(-3px);
+    background:var(--tile-bg-hover);
+    box-shadow:0 9px 0 rgba(0,0,0,0.3), inset 0 0 0 1px rgba(255,255,255,0.5);
+  }
+  .tile.dimmed{ opacity:0.22; }
+
+  .avatar{
+    width:64px; height:64px;
+    border-radius:50%;
+    object-fit:cover;
+    margin:0 auto 10px;
+    display:block;
+    border:2px solid var(--board-bg);
+    box-shadow:0 0 0 2px var(--amber-dim);
+    background:#cfc7b2;
+  }
+  .avatar-fallback{
+    width:64px; height:64px;
+    border-radius:50%;
+    margin:0 auto 10px;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Big Shoulders Display',sans-serif;
+    font-weight:700;
+    font-size:22px;
+    color:#f4efe2;
+    border:2px solid var(--board-bg);
+    box-shadow:0 0 0 2px var(--amber-dim);
+  }
+
+  .emp-name{
+    font-family:'Oswald',sans-serif;
+    font-weight:600;
+    font-size:12.5px;
+    letter-spacing:0.03em;
+    text-transform:uppercase;
+    color:var(--ink);
+    line-height:1.25;
+    margin-bottom:4px;
+    white-space:nowrap;
+  }
+  .emp-role{
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:9.5px;
+    letter-spacing:0.09em;
+    text-transform:uppercase;
+    color:var(--amber-dim);
+    white-space:nowrap;
+  }
+  .emp-dept{
+    display:inline-block;
+    margin-top:7px;
+    font-family:'Oswald',sans-serif;
+    font-size:8.5px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:#1a1408;
+    padding:1px 7px;
+    border-radius:8px;
+  }
+
+  footer{
+    text-align:center;
+    margin-top:64px;
+    font-family:'Oswald',sans-serif;
+    font-size:11px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:#565d6a;
+  }
+
+  @media (max-width:520px){
+    .tile{width:118px; padding:10px 6px 10px;}
+    .avatar, .avatar-fallback{width:52px; height:52px;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <p class="eyebrow">Reporting Structure</p>
+  <h1>Company Directory</h1>
+  <p class="subhead">Live org tree, synced from Google Sheets</p>
+  <div class="controls">
+    <input id="search" type="text" placeholder="Find a person, department, or title…">
+    <button id="refreshBtn" type="button">Refresh</button>
+  </div>
+</header>
+
+<main>
+  <div id="status">Loading directory…</div>
+  <div class="tree-wrap" id="board"></div>
+  <div class="unlinked-note" id="unlinkedNote" style="display:none;"></div>
+</main>
+
+<footer>Search highlights matches · Data refreshes on load</footer>
+
+<script>
+/* =====================================================================
+   CONFIGURATION
+   Replace API_URL with your deployed Apps Script Web App URL
+   (Deploy → New deployment → Web app → copy the URL ending in /exec)
+   ===================================================================== */
+const CONFIG = {
+  API_URL: "https://script.google.com/macros/s/AKfycbxeKo26RDalSZR1JN9DSKB8JKX8HFbnV45ucrR0DDvHhwtKMAEYYrs3TR7Iyefcaw/exec",
+};
+
+/* Seniority order — only used as a tie-breaker to sort siblings that share
+   the same supervisor (e.g. a Manager listed before an Executive under the
+   same boss). It has no effect on WHO reports to WHOM; SUPERVISOR_ID does. */
+const RANK_ORDER = [
+  "chairman","managing director","md","chief executive","ceo","president",
+  "director","ea to md","vice president","vp",
+  "general manager","head of","retail manager",
+  "senior manager","sr. mis manager","hr manager","account manager","purchase manager","manager",
+  "assistant manager","team lead","lead",
+  "senior executive","senior associate","senior",
+  "marketing executive","sales executive","purchase executive","executive",
+  "hr recruitement","hr recruitment","associate","officer",
+  "process cordinator","process coordinator","coordinator",
+  "analyst","data entry operator","cashier","tele calling","greeter",
+  "office assistant","office boy","housekeeper","driver",
+  "trainee","intern"
+];
+
+function rankOf(designation){
+  const d = String(designation || "").toLowerCase().trim();
+  for (let i = 0; i < RANK_ORDER.length; i++){
+    const term = RANK_ORDER[i];
+    const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const re = new RegExp("\\b" + escaped + "\\b");
+    if (re.test(d)) return i;
+  }
+  return RANK_ORDER.length;
+}
+
+function levelOf(emp){
+  const manual = parseFloat(emp.level);
+  if (!isNaN(manual)) return manual;
+  return 1000 + rankOf(emp.designation);
+}
+
+function initials(name){
+  return String(name || "?")
+    .trim()
+    .split(/\s+/)
+    .slice(0,2)
+    .map(w => w[0] ? w[0].toUpperCase() : "")
+    .join("");
+}
+
+function colorFor(str){
+  let hash = 0;
+  for (let i=0; i<str.length; i++){ hash = str.charCodeAt(i) + ((hash << 5) - hash); }
+  const hue = Math.abs(hash) % 360;
+  return `hsl(${hue}, 55%, 62%)`;
+}
+
+function normalizeRow(row){
+  const get = (keys) => {
+    for (const k of keys){
+      if (row[k] !== undefined && row[k] !== null && String(row[k]).trim() !== "") return String(row[k]).trim();
+    }
+    return "";
+  };
+
+  let rawName = get(["EMPLOYEE_NAME","NAME","EMPLOYEE"]);
+
+  // The leading "12~" serial number in EMPLOYEE_NAME doubles as this
+  // person's unique ID, used to match against SUPERVISOR_ID.
+  const idMatch = rawName.match(/^(\d+)\s*~/);
+  const id = idMatch ? idMatch[1] : "";
+  rawName = rawName.replace(/^\d+\s*~\s*/, "").trim();
+
+  return {
+    id,
+    dept: get(["DEPT","DEPARTMENT"]),
+    designation: get(["DESIGNATION","TITLE","ROLE"]),
+    name: rawName,
+    photo: get(["PHOTOURL","PHOTO_URL","EMPLOYE_SELFIE_LINK","EMPLOYEE_SELFIE_LINK","SELFIE_LINK","PHOTO"]),
+    level: get(["DESIGNATION_LEVEL","LEVEL","RANK"]),
+    supervisorId: get(["SUPERVISOR_ID","SUPERVISORID","REPORTS_TO","MANAGER_ID"])
+  };
+}
+
+/* ---------------------------------------------------------------------
+   Build the reporting tree from flat rows using id / supervisorId.
+   Anyone with a blank SUPERVISOR_ID, an unrecognized one, or a
+   self-reference becomes a root (top of a chart, e.g. the MD).
+   --------------------------------------------------------------------- */
+function buildForest(rows){
+  const byId = new Map();
+  let autoId = 0;
+  rows.forEach(r => {
+    const key = r.id || ("row-" + (autoId++));
+    byId.set(key, Object.assign({}, r, { id: key, children: [] }));
+  });
+
+  const roots = [];
+  byId.forEach(node => {
+    const supId = String(node.supervisorId || "").trim();
+    if (supId && byId.has(supId) && supId !== node.id){
+      byId.get(supId).children.push(node);
+    } else {
+      roots.push(node);
+    }
+  });
+
+  const sortFn = (a, b) => levelOf(a) - levelOf(b) || a.name.localeCompare(b.name);
+  const sortRec = (node) => { node.children.sort(sortFn); node.children.forEach(sortRec); };
+  roots.sort(sortFn);
+  roots.forEach(sortRec);
+
+  return roots;
+}
+
+function buildTile(emp){
+  const tile = document.createElement("div");
+  tile.className = "tile";
+  tile.dataset.search = [emp.name, emp.designation, emp.dept].join(" ").toLowerCase();
+
+  const img = document.createElement("img");
+  img.className = "avatar";
+  img.alt = emp.name;
+  img.loading = "lazy";
+  img.src = emp.photo;
+  img.onerror = () => {
+    const fb = document.createElement("div");
+    fb.className = "avatar-fallback";
+    fb.style.background = colorFor(emp.name || emp.designation || "x");
+    fb.textContent = initials(emp.name);
+    img.replaceWith(fb);
+  };
+
+  const name = document.createElement("div");
+  name.className = "emp-name";
+  name.textContent = emp.name || "Unnamed";
+
+  const role = document.createElement("div");
+  role.className = "emp-role";
+  role.textContent = emp.designation || "—";
+
+  tile.append(img, name, role);
+
+  if (emp.dept){
+    const dept = document.createElement("div");
+    dept.className = "emp-dept";
+    dept.style.background = colorFor(emp.dept);
+    dept.textContent = emp.dept;
+    tile.appendChild(dept);
+  }
+
+  return tile;
+}
+
+function renderNode(node){
+  const li = document.createElement("li");
+  if (!node.children.length) li.classList.add("leaf");
+  li.appendChild(buildTile(node));
+  if (node.children.length){
+    const ul = document.createElement("ul");
+    node.children.forEach(child => ul.appendChild(renderNode(child)));
+    li.appendChild(ul);
+  }
+  return li;
+}
+
+function render(rows){
+  const status = document.getElementById("status");
+  const board = document.getElementById("board");
+  const note = document.getElementById("unlinkedNote");
+  board.innerHTML = "";
+
+  if (!rows.length){
+    status.textContent = "No records found in the sheet yet.";
+    status.classList.remove("error");
+    note.style.display = "none";
+    return;
+  }
+  status.style.display = "none";
+
+  const roots = buildForest(rows);
+  const ul = document.createElement("ul");
+  ul.className = "org-tree";
+  roots.forEach(r => ul.appendChild(renderNode(r)));
+  board.appendChild(ul);
+
+  const unlinkedCount = roots.length > 1 ? roots.length : 0;
+  if (unlinkedCount){
+    note.style.display = "block";
+    note.textContent = `${unlinkedCount} people have no matching SUPERVISOR_ID and are shown as separate top-level trees.`;
+  } else {
+    note.style.display = "none";
+  }
+
+  wireSearch();
+}
+
+function wireSearch(){
+  const input = document.getElementById("search");
+  input.oninput = () => {
+    const q = input.value.trim().toLowerCase();
+    document.querySelectorAll(".tile").forEach(tile => {
+      const matches = q === "" || (tile.dataset.search || "").includes(q);
+      tile.classList.toggle("dimmed", !matches);
+    });
+  };
+}
+
+async function load(){
+  const status = document.getElementById("status");
+  status.style.display = "block";
+  status.classList.remove("error");
+  status.textContent = "Loading directory…";
+
+  if (!CONFIG.API_URL || CONFIG.API_URL.includes("PASTE_YOUR")){
+    status.classList.add("error");
+    status.innerHTML = "No data source configured yet.<br>Set <code>CONFIG.API_URL</code> in index.html to your deployed Apps Script URL.";
+    return;
+  }
+
+  try{
+    const res = await fetch(CONFIG.API_URL, { cache: "no-store" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    const rows = (Array.isArray(data) ? data : []).map(normalizeRow).filter(r => r.name);
+    render(rows);
+  } catch (err){
+    status.classList.add("error");
+    status.innerHTML = "Couldn't load the directory.<br>" + String(err.message || err);
+  }
+}
+
+document.getElementById("refreshBtn").addEventListener("click", load);
+load();
+</script>
+</body>
+</html>
