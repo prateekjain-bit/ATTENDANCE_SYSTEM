@@ -454,28 +454,22 @@ function renderCustomers(data) {
   data.forEach(function(c){
 
     const customerName =
-      c["CLIENT NAME"] || '';
+      c["customer"] || '';
 
     const address =
-      c["ADDRESS/CONTACT"] || '';
+      c["address"] || '';
 
     const mobile =
-      c["Contact"] || '';
+      c["mobile"] || '';
 
-    const billAmt =
-      c["TOTAL BILL AMT"] || '';
+    const grade =
+      c["grade"] || '';
 
-    const balance =
-      c["FINAL BALANCE BILL AMT"] || '';
+    const pl_date =
+      c["pl_date"] || '';
 
-    const lead =
-      c["REMINDER IN DAYS"] || '';
-
-    const billDate =
-      c["BILL DATE"] || '';
-
-    const pdate =
-      c["DATE FOR HOME VISIT"] || '';
+    const delivery_by =
+      c["delivery_by"] || '';
 
     container.innerHTML += `
 
@@ -497,31 +491,16 @@ function renderCustomers(data) {
 
           <div class="text-sm">
 
-            Bill Date:
-            ${formatDate(billDate)}
-
-            | Bill Amt:
-            ₹ ${billAmt}
-
-            | Balance:
-            ₹ ${balance}
-
+            pl_date:
+            ${formatDate(pl_date)}
           </div>
 
           <div class="text-sm mt-1">
 
-            Reminder Days:
-            ${lead}
+            D_By:
+            ${delivery_by}
 
           </div>
-
-          <div class="text-sm mt-1">
-
-            Visit Plan Date:
-            ${formatDate(pdate)}
-
-          </div>
-
         </div>
 
         <div class="flex gap-2 mt-4">
