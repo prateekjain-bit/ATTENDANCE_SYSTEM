@@ -392,25 +392,30 @@ function filterCustomers() {
 
       return (
 
-        String(c["CLIENT NAME"] || '')
+        String(c["customer"] || '')
           .toLowerCase()
           .includes(keyword)
 
         ||
 
-        String(c["Contact"] || '')
+        String(c["mobile"] || '')
+          .toLowerCase()
+          .includes(keyword)
+        ||
+
+        String(c["grade"] || '')
           .toLowerCase()
           .includes(keyword)
 
         ||
 
-        String(c["ADDRESS/CONTACT"] || '')
+        String(c["address"] || '')
           .toLowerCase()
           .includes(keyword)
 
         ||
 
-        String(c["ID"] || '')
+        String(c["id"] || '')
           .toLowerCase()
           .includes(keyword)
 
@@ -477,13 +482,13 @@ function renderCustomers(data) {
 
         <h2 class="font-bold text-lg">
 
-          ${customerName}
+          ${customerName} ~ ${grade}
 
         </h2>
 
         <p class="text-sm text-gray-600 mt-1">
 
-          ${address}
+          ${address},${mobile}
 
         </p>
 
@@ -587,11 +592,11 @@ function openVisit(c) {
 
   document
     .getElementById('customerId')
-    .value = c["ID"] || '';
+    .value = c["id"] || '';
 
   document
     .getElementById('customerName')
-    .value = c["CLIENT NAME"] || '';
+    .value = c["customer"] || '';
 
 }
 
