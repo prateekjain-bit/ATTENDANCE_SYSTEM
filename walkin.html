@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Walk-ins Tracker</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body{background:#f6f3f4;color:#2a2230}
+  .field{width:100%;border:1px solid #d9d0d6;background:#fff;border-radius:.5rem;padding:.5rem .75rem;font-size:.95rem}
+  .field:focus,.field:focus-within{outline:2px solid #7a3b5e;outline-offset:1px;border-color:#7a3b5e}
+  .ro{background:#efe9ec;color:#5b4d57}
+  label.lbl{display:block;font-size:.8rem;font-weight:600;margin-bottom:.25rem;color:#4a3a46}
+  .chip{background:#efe1ea;color:#5a2644;border-radius:.375rem;padding:.1rem .45rem;font-size:.8rem;display:inline-flex;gap:.3rem;align-items:center}
+  .opt{padding:.5rem .75rem;cursor:pointer}.opt:hover,.opt.on{background:#f3e8ef}
+</style>
+</head>
+<body class="min-h-screen">
+<header class="bg-[#3b1d31] text-white">
+  <div class="max-w-5xl mx-auto px-4 py-4">
+    <h1 class="text-xl font-semibold">Prakash Jewellery</h1>
+    <p class="text-sm text-[#d9bfce]">Walk-ins Tracker</p>
+  </div>
+</header>
+
+<section class="max-w-[1600px] mx-auto px-4 pt-5">
+  <div class="flex items-center justify-between mb-2">
+    <h2 class="font-semibold">Active interactions <span id="cnt" class="ml-1 text-sm bg-[#efe1ea] text-[#5a2644] rounded px-2 py-0.5">0</span></h2>
+    <button id="refresh" class="px-3 py-1.5 text-sm rounded-lg border border-[#d9d0d6] bg-white">Refresh</button>
+  </div>
+  <div class="bg-white rounded-xl border border-[#e4dbe1] overflow-x-auto">
+    <table class="text-sm min-w-max w-full"><thead id="thead"></thead><tbody id="rows"></tbody></table>
+    <p id="empty" class="hidden p-6 text-center text-sm text-[#5b4d57]">No active interactions. Add a walk-in below.</p>
+  </div>
+  <p class="text-xs text-[#5b4d57] mt-2">Edit any cell, then press Save on that row. Finalize saves the row, locks it and removes it from this list.</p>
+</section>
+
+<main class="max-w-5xl mx-auto px-4 py-5">
+  <div id="status" class="hidden"></div>
+  <h2 class="font-semibold mb-3 text-lg">New walk-in</h2>
+  <form id="f" class="space-y-6" onsubmit="return false">
+    <section class="bg-white rounded-xl border border-[#e4dbe1] p-4 space-y-4">
+      <h2 class="font-semibold">Customer</h2>
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div><label class="lbl">Entry ID</label><input class="field ro" value="Assigned on save" readonly></div>
+        <div><label class="lbl" for="date">Date</label><input id="date" type="date" class="field"></div>
+        <div><label class="lbl">Old / new customer</label><div id="oldNew" class="flex gap-4 pt-2"></div></div>
+        <div class="sm:col-span-2 lg:col-span-1"><label class="lbl" for="customer">Customer name *</label><textarea id="customer" rows="2" class="field"></textarea></div>
+        <div><label class="lbl" for="mobile">Mobile number</label><input id="mobile" type="tel" inputmode="numeric" maxlength="10" class="field" placeholder="10 digits"></div>
+        <div class="sm:col-span-2 lg:col-span-1"><label class="lbl" for="address">Address</label><textarea id="address" rows="2" class="field"></textarea></div>
+      </div>
+    </section>
+
+    <section class="bg-white rounded-xl border border-[#e4dbe1] p-4 space-y-4">
+      <h2 class="font-semibold">Sales and billing</h2>
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div><label class="lbl">Salesman *</label><div data-combo="salesman" data-list="Salesman"></div></div>
+        <div><label class="lbl" for="salesAlloc">Salesman allocation time</label><input id="salesAlloc" type="time" class="field"></div>
+        <div><label class="lbl" for="salesDone">Sales done time</label><input id="salesDone" type="time" class="field"></div>
+        <div><label class="lbl">Total interaction time</label><input id="salesDur" class="field ro" readonly placeholder="Calculated"></div>
+        <div><label class="lbl">Accountant</label><div data-combo="accountant" data-list="Accountant"></div></div>
+        <div><label class="lbl" for="accAlloc">Accountant allocation time</label><input id="accAlloc" type="time" class="field"></div>
+        <div><label class="lbl" for="accDone">Accounting done time</label><input id="accDone" type="time" class="field"></div>
+        <div><label class="lbl">Billing duration</label><input id="billDur" class="field ro" readonly placeholder="Calculated"></div>
+      </div>
+    </section>
+
+    <section class="bg-white rounded-xl border border-[#e4dbe1] p-4 space-y-4">
+      <h2 class="font-semibold">Purchase</h2>
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div class="flex items-center gap-2 pt-6"><input id="purchase" type="checkbox" class="h-5 w-5 accent-[#7a3b5e]"><label for="purchase" class="font-medium">Purchase done</label></div>
+        <div><label class="lbl">Order / repair / scheme</label><div data-combo="orderType" data-list="Order Type"></div></div>
+        <div><label class="lbl" for="nonSales">Non-sales product</label><textarea id="nonSales" rows="2" class="field"></textarea></div>
+        <div><label class="lbl" for="gold">Gold</label><textarea id="gold" rows="2" class="field"></textarea></div>
+        <div><label class="lbl" for="silver">Silver</label><textarea id="silver" rows="2" class="field"></textarea></div>
+        <div><label class="lbl" for="diamond">Diamond</label><textarea id="diamond" rows="2" class="field"></textarea></div>
+        <div><label class="lbl" for="gems">Gems</label><textarea id="gems" rows="2" class="field"></textarea></div>
+      </div>
+    </section>
+
+    <section class="bg-white rounded-xl border border-[#e4dbe1] p-4 space-y-4">
+      <h2 class="font-semibold">Other</h2>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div><label class="lbl">Executive park the bike</label><div id="park" class="flex flex-wrap gap-4 pt-2"></div></div>
+        <div><label class="lbl">Buddy</label><div data-combo="buddy" data-list="Buddy"></div></div>
+      </div>
+    </section>
+
+    <div class="sticky bottom-0 -mx-4 px-4 py-3 bg-[#f6f3f4]/95 border-t border-[#e4dbe1] flex gap-3 justify-end">
+      <button type="button" id="clear" class="px-4 py-2 rounded-lg border border-[#d9d0d6] bg-white">Clear form</button>
+      <button type="button" id="save" class="px-5 py-2 rounded-lg bg-[#7a3b5e] text-white font-medium disabled:opacity-50">Add to active list</button>
+    </div>
+  </form>
+</main>
+
+<script>
+// ---- CONFIG: paste your Apps Script web app URL ----
+const API_URL = 'https://script.google.com/macros/s/AKfycbzeg923PuOqSTyhnpgFhBzXaNC4vshaNDKqTEkEGVjs0levgpGo8UXRObKn2zM4OvQ/exec';
+
+const $ = id => document.getElementById(id);
+const today = () => new Date(Date.now() - new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
+let masters = {}; const combos = {};
+
+function status(msg, ok) {
+  const s = $('status');
+  s.textContent = msg; s.className = 'fixed top-3 left-1/2 -translate-x-1/2 z-50 shadow-lg max-w-[90vw] rounded-lg px-4 py-3 text-sm ' + (ok ? 'bg-green-100 text-green-900' : 'bg-red-100 text-red-900');
+  clearTimeout(status.t); status.t = setTimeout(() => s.classList.add('hidden'), 5000);
+}
+
+// radios
+function radios(id, name, vals, def) {
+  $(id).innerHTML = vals.map(v => `<label class="inline-flex items-center gap-2"><input type="radio" name="${name}" value="${v}" class="h-4 w-4 accent-[#7a3b5e]" ${v===def?'checked':''}>${v}</label>`).join('');
+}
+const radio = n => (document.querySelector(`input[name=${n}]:checked`)||{}).value || '';
+radios('oldNew','oldNew',['Old','New'],'New');
+radios('park','park',['Not parked','Parked','By walk'],'Not parked');
+
+// searchable dropdown (single or multi)
+function makeCombo(box) {
+  const key = box.dataset.combo, multi = 'multi' in box.dataset; let sel = [];
+  box.className = 'relative';
+  box.innerHTML = `<div class="field flex flex-wrap gap-1 items-center min-h-[42px]"><span class="chips flex flex-wrap gap-1"></span><input class="flex-1 min-w-[90px] outline-none bg-transparent" placeholder="Search"></div><ul class="hidden absolute z-20 mt-1 w-full max-h-52 overflow-auto bg-white border border-[#d9d0d6] rounded-lg shadow-lg"></ul>`;
+  const inp = box.querySelector('input'), ul = box.querySelector('ul'), chips = box.querySelector('.chips');
+  const opts = () => masters[box.dataset.list] || [];
+  function draw() {
+    chips.innerHTML = sel.map((v,i) => `<span class="chip">${v}<button type="button" data-i="${i}" aria-label="Remove ${v}">×</button></span>`).join('');
+    inp.placeholder = sel.length && !multi ? '' : 'Search';
+  }
+  function list() {
+    const q = inp.value.toLowerCase();
+    const m = opts().filter(o => o.toLowerCase().includes(q));
+    ul.innerHTML = m.length ? m.map(o => `<li class="opt ${sel.includes(o)?'on':''}" data-v="${o.replace(/"/g,'&quot;')}">${o}</li>`).join('') : '<li class="px-3 py-2 text-sm text-gray-500">No match</li>';
+    ul.classList.remove('hidden');
+  }
+  inp.addEventListener('focus', list); inp.addEventListener('input', list);
+  ul.addEventListener('mousedown', e => {
+    const li = e.target.closest('li[data-v]'); if (!li) return; e.preventDefault();
+    const v = li.dataset.v;
+    if (multi) { sel = sel.includes(v) ? sel.filter(x => x !== v) : [...sel, v]; inp.value = ''; draw(); list(); }
+    else { sel = [v]; inp.value = ''; draw(); ul.classList.add('hidden'); inp.blur(); }
+  });
+  chips.addEventListener('click', e => { const b = e.target.closest('button'); if (b) { sel.splice(+b.dataset.i, 1); draw(); } });
+  inp.addEventListener('blur', () => setTimeout(() => ul.classList.add('hidden'), 120));
+  combos[key] = { get: () => multi ? sel.join(', ') : (sel[0] || ''), reset: () => { sel = []; inp.value = ''; draw(); } };
+}
+document.querySelectorAll('[data-combo]').forEach(makeCombo);
+
+// durations
+function mins(a, b) {
+  if (!a || !b) return null;
+  const [h1,m1] = a.split(':').map(Number), [h2,m2] = b.split(':').map(Number);
+  let d = (h2*60+m2) - (h1*60+m1); if (d < 0) d += 1440; return d;
+}
+const fmt = d => d === null ? '' : (d >= 60 ? Math.floor(d/60) + 'h ' : '') + (d % 60) + 'm';
+function calc() {
+  $('salesDur').value = fmt(mins($('salesAlloc').value, $('salesDone').value));
+  $('billDur').value = fmt(mins($('accAlloc').value, $('accDone').value));
+}
+['salesAlloc','salesDone','accAlloc','accDone'].forEach(id => $(id).addEventListener('input', calc));
+$('mobile').addEventListener('input', e => e.target.value = e.target.value.replace(/\D/g,''));
+
+function reset() {
+  $('f').reset(); $('date').value = today(); calc();
+  Object.values(combos).forEach(c => c.reset());
+  radios('oldNew','oldNew',['Old','New'],'New'); radios('park','park',['Not parked','Parked','By walk'],'Not parked');
+}
+$('clear').onclick = reset;
+
+async function save() {
+  const p = {
+    action: 'create', date: $('date').value, customer: $('customer').value.trim(), salesman: combos.salesman.get(),
+    mobile: $('mobile').value, address: $('address').value.trim(),
+    salesAlloc: $('salesAlloc').value, salesDone: $('salesDone').value, salesDur: $('salesDur').value,
+    accountant: combos.accountant.get(), accAlloc: $('accAlloc').value, accDone: $('accDone').value, billDur: $('billDur').value,
+    oldNew: radio('oldNew'), purchase: $('purchase').checked, orderType: combos.orderType.get(),
+    gold: $('gold').value.trim(), silver: $('silver').value.trim(), diamond: $('diamond').value.trim(), gems: $('gems').value.trim(),
+    nonSales: $('nonSales').value.trim(), park: radio('park'), buddy: combos.buddy.get()
+  };
+  if (!p.customer) return status('Enter the customer name.');
+  if (!p.salesman) return status('Choose a salesman.');
+  if (p.mobile && !/^\d{10}$/.test(p.mobile)) return status('Mobile number must be 10 digits.');
+  const b = $('save'); b.disabled = true; b.textContent = 'Saving...';
+  try {
+    const r = await fetch(API_URL, { method: 'POST', body: JSON.stringify(p) }); // text/plain avoids CORS preflight
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error);
+    status('Entry #' + j.id + ' added.', true); reset(); loadActive();
+  } catch (e) { status('Could not save: ' + e.message + '. Your entry is still on screen.'); }
+  b.disabled = false; b.textContent = 'Add to active list';
+}
+$('save').onclick = save;
+
+// ---- Active interactions: inline row editing ----
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const COLS = [['customer','Customer','ta'],['mobile','Mobile','tel'],['address','Address','ta'],['salesman','Salesman','sel:Salesman'],
+  ['salesAlloc','Sales alloc','time'],['salesDone','Sales done','time'],['salesDur','Interaction','ro'],
+  ['accountant','Accountant','sel:Accountant'],['accAlloc','Acc alloc','time'],['accDone','Acc done','time'],['billDur','Billing','ro'],
+  ['oldNew','Old / new','sel:*Old,New'],['purchase','Purchase','chk'],['orderType','Order / repair / scheme','sel:Order Type'],
+  ['gold','Gold','ta'],['silver','Silver','ta'],['diamond','Diamond','ta'],['gems','Gems','ta'],['nonSales','Non-sales','ta'],
+  ['park','Bike','sel:*Not parked,Parked,By walk'],['buddy','Buddy','sel:Buddy']];
+const TH = 'p-2 bg-[#f6f0f3] whitespace-nowrap';
+$('thead').innerHTML = `<tr class="text-left text-xs text-[#5b4d57]"><th class="${TH} sticky left-0 z-20 w-12 min-w-[3rem]">#</th>${COLS.map(c => `<th class="${TH}${c[0] === 'customer' ? ' sticky left-12 z-20 border-r border-[#e4dbe1]' : ''}">${c[1]}</th>`).join('')}<th class="${TH} sticky right-0 z-20">Actions</th></tr>`;
+
+function cellInput(c, v) {
+  const k = c[0], t = c[2], b = 'field !py-1 !px-2 text-sm ';
+  if (t === 'ta') return `<textarea data-k="${k}" rows="2" class="${b}w-40">${esc(v)}</textarea>`;
+  if (t === 'tel') return `<input data-k="${k}" inputmode="numeric" maxlength="10" value="${esc(v)}" class="${b}w-28">`;
+  if (t === 'time') return `<input data-k="${k}" type="time" value="${esc(v)}" class="${b}w-28">`;
+  if (t === 'ro') return `<input data-k="${k}" readonly value="${esc(v)}" class="${b}ro w-20">`;
+  if (t === 'chk') return `<input data-k="${k}" type="checkbox" ${v ? 'checked' : ''} class="h-5 w-5 accent-[#7a3b5e]">`;
+  const list = t.startsWith('sel:*') ? t.slice(5).split(',') : (masters[t.slice(4)] || []);
+  const opts = !v || list.includes(v) ? list : [...list, v];
+  return `<select data-k="${k}" class="${b}w-36"><option value=""></option>${opts.map(o => `<option ${o === v ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
+}
+function collect(tr) {
+  const o = {};
+  tr.querySelectorAll('[data-k]').forEach(e => o[e.dataset.k] = e.type === 'checkbox' ? e.checked : e.value.trim());
+  return o;
+}
+function setDirty(tr, on) {
+  tr.classList.toggle('dirty', on); tr.classList.toggle('bg-amber-50', on); tr.classList.toggle('bg-white', !on);
+}
+function renderActive(rows) {
+  const keep = {};
+  document.querySelectorAll('#rows tr.dirty').forEach(tr => keep[tr.dataset.id] = collect(tr)); // keep unsaved edits
+  $('rows').innerHTML = rows.map(r => {
+    const d = keep[r.id], v = d ? { ...r, ...d } : r;
+    return `<tr data-id="${r.id}" class="border-t border-[#eee6eb] align-top ${d ? 'dirty bg-amber-50' : 'bg-white'}">
+      <td class="p-2 font-medium sticky left-0 z-10 w-12 min-w-[3rem] bg-inherit">${r.id}</td>
+      ${COLS.map(c => `<td class="p-2${c[0] === 'customer' ? ' sticky left-12 z-10 bg-inherit border-r border-[#e4dbe1]' : ''}">${cellInput(c, v[c[0]])}</td>`).join('')}
+      <td class="p-2 sticky right-0 z-10 bg-inherit whitespace-nowrap">
+        <button data-act="update" class="px-3 py-1.5 rounded-lg border border-[#7a3b5e] text-[#7a3b5e] text-sm bg-white">Save</button>
+        <button data-act="finalize" class="px-3 py-1.5 rounded-lg bg-[#7a3b5e] text-white text-sm">Finalize</button></td></tr>`;
+  }).join('');
+  $('cnt').textContent = rows.length;
+  $('empty').classList.toggle('hidden', rows.length > 0);
+}
+async function loadActive() {
+  try {
+    const j = await (await fetch(API_URL + '?action=active')).json();
+    if (!j.ok) throw new Error(j.error);
+    renderActive(j.rows);
+  } catch (e) { status('Could not load active entries: ' + e.message); }
+}
+function recalc(tr) {
+  const q = k => tr.querySelector(`[data-k=${k}]`);
+  q('salesDur').value = fmt(mins(q('salesAlloc').value, q('salesDone').value));
+  q('billDur').value = fmt(mins(q('accAlloc').value, q('accDone').value));
+}
+$('rows').addEventListener('input', e => {
+  const tr = e.target.closest('tr'); if (!tr) return;
+  if (e.target.dataset.k === 'mobile') e.target.value = e.target.value.replace(/\D/g, '');
+  recalc(tr); setDirty(tr, true);
+});
+$('rows').addEventListener('click', async e => {
+  const btn = e.target.closest('button[data-act]'); if (!btn) return;
+  const tr = btn.closest('tr'), id = +tr.dataset.id, act = btn.dataset.act, p = collect(tr);
+  if (act === 'finalize') {
+    if (!p.customer || !p.salesman || !/^\d{10}$/.test(p.mobile)) return status('Entry #' + id + ': customer name, salesman and a 10-digit mobile are needed to finalize.');
+    if (!confirm('Finalize entry #' + id + '? It will be locked and removed from this list.')) return;
+  }
+  p.action = act; p.id = id;
+  const btns = tr.querySelectorAll('button'); btns.forEach(b => b.disabled = true);
+  try {
+    const j = await (await fetch(API_URL, { method: 'POST', body: JSON.stringify(p) })).json();
+    if (!j.ok) throw new Error(j.error);
+    if (act === 'finalize') { tr.remove(); $('cnt').textContent = document.querySelectorAll('#rows tr').length; $('empty').classList.toggle('hidden', !!document.querySelector('#rows tr')); status('Entry #' + id + ' finalized.', true); }
+    else { setDirty(tr, false); status('Entry #' + id + ' saved.', true); }
+  } catch (err) { status('Entry #' + id + ' not saved: ' + err.message); }
+  btns.forEach(b => b.disabled = false);
+});
+$('refresh').onclick = loadActive;
+
+async function init() {
+  $('date').value = today();
+  try {
+    const j = await (await fetch(API_URL)).json();
+    if (!j.ok) throw new Error(j.error);
+    masters = j.masters;
+  } catch (e) { status('Could not load dropdown lists: ' + e.message + '. Check API_URL and the Masters tab.'); }
+  loadActive();
+}
+init();
+</script>
+</body>
+</html>
