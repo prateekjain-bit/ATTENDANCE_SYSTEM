@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Walk-ins Tracker</title>
+<title>Customer Walk-ins Tracker</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
   body{background:#f6f3f4;color:#2a2230}
@@ -12,14 +12,17 @@
   .ro{background:#efe9ec;color:#5b4d57}
   label.lbl{display:block;font-size:.8rem;font-weight:600;margin-bottom:.25rem;color:#4a3a46}
   .chip{background:#efe1ea;color:#5a2644;border-radius:.375rem;padding:.1rem .45rem;font-size:.8rem;display:inline-flex;gap:.3rem;align-items:center}
+  .spin{display:inline-block;width:1em;height:1em;margin-right:.4em;vertical-align:-.12em;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp .7s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  button:disabled{cursor:not-allowed;opacity:.6}
   .opt{padding:.5rem .75rem;cursor:pointer}.opt:hover,.opt.on{background:#f3e8ef}
 </style>
 </head>
 <body class="min-h-screen">
 <header class="bg-[#3b1d31] text-white">
   <div class="max-w-5xl mx-auto px-4 py-4">
-    <h1 class="text-xl font-semibold">Prakash Jewellery</h1>
-    <p class="text-sm text-[#d9bfce]">Walk-ins Tracker</p>
+    <h1 class="text-xl font-semibold">Customer walk-ins</h1>
+    <p class="text-sm text-[#d9bfce]">Jewellery showroom entry log</p>
   </div>
 </header>
 
@@ -45,7 +48,7 @@
         <div><label class="lbl">Entry ID</label><input class="field ro" value="Assigned on save" readonly></div>
         <div><label class="lbl" for="date">Date</label><input id="date" type="date" class="field"></div>
         <div><label class="lbl">Old / new customer</label><div id="oldNew" class="flex gap-4 pt-2"></div></div>
-        <div class="sm:col-span-2 lg:col-span-1"><label class="lbl" for="customer">Customer name *</label><textarea id="customer" rows="2" class="field"></textarea></div>
+        <div class="sm:col-span-2 lg:col-span-1"><label class="lbl" for="customer">Customer name</label><textarea id="customer" rows="2" class="field"></textarea></div>
         <div><label class="lbl" for="mobile">Mobile number</label><input id="mobile" type="tel" inputmode="numeric" maxlength="10" class="field" placeholder="10 digits"></div>
         <div class="sm:col-span-2 lg:col-span-1"><label class="lbl" for="address">Address</label><textarea id="address" rows="2" class="field"></textarea></div>
       </div>
@@ -54,7 +57,7 @@
     <section class="bg-white rounded-xl border border-[#e4dbe1] p-4 space-y-4">
       <h2 class="font-semibold">Sales and billing</h2>
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <div><label class="lbl">Salesman *</label><div data-combo="salesman" data-list="Salesman"></div></div>
+        <div><label class="lbl">Salesman * <span class="font-normal text-[#8a6a7c]">(required)</span></label><div data-combo="salesman" data-list="Salesman"></div></div>
         <div><label class="lbl" for="salesAlloc">Salesman allocation time</label><input id="salesAlloc" type="time" class="field"></div>
         <div><label class="lbl" for="salesDone">Sales done time</label><input id="salesDone" type="time" class="field"></div>
         <div><label class="lbl">Total interaction time</label><input id="salesDur" class="field ro" readonly placeholder="Calculated"></div>
@@ -98,6 +101,7 @@
 const API_URL = 'https://script.google.com/macros/s/AKfycbzeg923PuOqSTyhnpgFhBzXaNC4vshaNDKqTEkEGVjs0levgpGo8UXRObKn2zM4OvQ/exec';
 
 const $ = id => document.getElementById(id);
+const busy = (b, on, label) => { if (on) { b.dataset.t = b.innerHTML; b.innerHTML = '<span class="spin"></span>' + label; } else if (b.dataset.t) b.innerHTML = b.dataset.t; b.disabled = on; };
 const today = () => new Date(Date.now() - new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
 let masters = {}; const combos = {};
 
@@ -138,10 +142,11 @@ function makeCombo(box) {
     const v = li.dataset.v;
     if (multi) { sel = sel.includes(v) ? sel.filter(x => x !== v) : [...sel, v]; inp.value = ''; draw(); list(); }
     else { sel = [v]; inp.value = ''; draw(); ul.classList.add('hidden'); inp.blur(); }
+    saveForm();
   });
-  chips.addEventListener('click', e => { const b = e.target.closest('button'); if (b) { sel.splice(+b.dataset.i, 1); draw(); } });
+  chips.addEventListener('click', e => { const b = e.target.closest('button'); if (b) { sel.splice(+b.dataset.i, 1); draw(); saveForm(); } });
   inp.addEventListener('blur', () => setTimeout(() => ul.classList.add('hidden'), 120));
-  combos[key] = { get: () => multi ? sel.join(', ') : (sel[0] || ''), reset: () => { sel = []; inp.value = ''; draw(); } };
+  combos[key] = { get: () => multi ? sel.join(', ') : (sel[0] || ''), reset: () => { sel = []; inp.value = ''; draw(); }, set: v => { sel = v ? [v] : []; draw(); } };
 }
 document.querySelectorAll('[data-combo]').forEach(makeCombo);
 
@@ -160,6 +165,7 @@ function calc() {
 $('mobile').addEventListener('input', e => e.target.value = e.target.value.replace(/\D/g,''));
 
 function reset() {
+  LS('wk_form', null);
   $('f').reset(); $('date').value = today(); calc();
   Object.values(combos).forEach(c => c.reset());
   radios('oldNew','oldNew',['Old','New'],'New'); radios('park','park',['Not parked','Parked','By walk'],'Not parked');
@@ -176,19 +182,39 @@ async function save() {
     gold: $('gold').value.trim(), silver: $('silver').value.trim(), diamond: $('diamond').value.trim(), gems: $('gems').value.trim(),
     nonSales: $('nonSales').value.trim(), park: radio('park'), buddy: combos.buddy.get()
   };
-  if (!p.customer) return status('Enter the customer name.');
-  if (!p.salesman) return status('Choose a salesman.');
+  if (!p.salesman) return status('Select a salesman to add the entry.');
   if (p.mobile && !/^\d{10}$/.test(p.mobile)) return status('Mobile number must be 10 digits.');
-  const b = $('save'); b.disabled = true; b.textContent = 'Saving...';
+  const b = $('save'); busy(b, true, 'Adding...');
   try {
     const r = await fetch(API_URL, { method: 'POST', body: JSON.stringify(p) }); // text/plain avoids CORS preflight
     const j = await r.json();
     if (!j.ok) throw new Error(j.error);
     status('Entry #' + j.id + ' added.', true); reset(); loadActive();
   } catch (e) { status('Could not save: ' + e.message + '. Your entry is still on screen.'); }
-  b.disabled = false; b.textContent = 'Add to active list';
+  busy(b, false);
 }
 $('save').onclick = save;
+
+// ---- Unsaved-draft protection (kept on this phone, survives reloads) ----
+const LS = (k, v) => { try { if (v === undefined) return JSON.parse(localStorage.getItem(k) || 'null'); v === null ? localStorage.removeItem(k) : localStorage.setItem(k, JSON.stringify(v)); } catch (e) { return null; } };
+const TXT = ['customer','mobile','address','salesAlloc','salesDone','accAlloc','accDone','gold','silver','diamond','gems','nonSales'];
+const CMB = ['salesman','accountant','orderType','buddy'];
+function saveForm() {
+  const o = {}; TXT.forEach(k => o[k] = $(k).value);
+  o.purchase = $('purchase').checked; o.oldNew = radio('oldNew'); o.park = radio('park');
+  CMB.forEach(k => o[k] = combos[k].get());
+  LS('wk_form', o);
+}
+function restoreForm() {
+  const o = LS('wk_form'); if (!o) return;
+  TXT.forEach(k => { if (o[k] != null) $(k).value = o[k]; });
+  $('purchase').checked = !!o.purchase;
+  ['oldNew','park'].forEach(n => { const r = document.querySelector(`input[name=${n}][value="${o[n]}"]`); if (r) r.checked = true; });
+  CMB.forEach(k => combos[k].set(o[k]));
+  calc();
+}
+$('f').addEventListener('input', saveForm);
+function dropDraft(id) { const d = LS('wk_rows') || {}; delete d[id]; LS('wk_rows', d); }
 
 // ---- Active interactions: inline row editing ----
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -221,8 +247,10 @@ function setDirty(tr, on) {
   tr.classList.toggle('dirty', on); tr.classList.toggle('bg-amber-50', on); tr.classList.toggle('bg-white', !on);
 }
 function renderActive(rows) {
-  const keep = {};
-  document.querySelectorAll('#rows tr.dirty').forEach(tr => keep[tr.dataset.id] = collect(tr)); // keep unsaved edits
+  const ids = new Set(rows.map(r => String(r.id))), stored = LS('wk_rows') || {}, keep = {};
+  Object.keys(stored).forEach(id => { if (ids.has(id)) keep[id] = stored[id]; }); // drafts saved on this phone
+  document.querySelectorAll('#rows tr.dirty').forEach(tr => keep[tr.dataset.id] = collect(tr)); // edits still on screen
+  LS('wk_rows', keep);
   $('rows').innerHTML = rows.map(r => {
     const d = keep[r.id], v = d ? { ...r, ...d } : r;
     return `<tr data-id="${r.id}" class="border-t border-[#eee6eb] align-top ${d ? 'dirty bg-amber-50' : 'bg-white'}">
@@ -251,6 +279,7 @@ $('rows').addEventListener('input', e => {
   const tr = e.target.closest('tr'); if (!tr) return;
   if (e.target.dataset.k === 'mobile') e.target.value = e.target.value.replace(/\D/g, '');
   recalc(tr); setDirty(tr, true);
+  const d = LS('wk_rows') || {}; d[tr.dataset.id] = collect(tr); LS('wk_rows', d);
 });
 $('rows').addEventListener('click', async e => {
   const btn = e.target.closest('button[data-act]'); if (!btn) return;
@@ -260,19 +289,20 @@ $('rows').addEventListener('click', async e => {
     if (!confirm('Finalize entry #' + id + '? It will be locked and removed from this list.')) return;
   }
   p.action = act; p.id = id;
-  const btns = tr.querySelectorAll('button'); btns.forEach(b => b.disabled = true);
+  const btns = tr.querySelectorAll('button'); btns.forEach(b => b.disabled = true); busy(btn, true, act === 'finalize' ? 'Finalizing...' : 'Saving...');
   try {
     const j = await (await fetch(API_URL, { method: 'POST', body: JSON.stringify(p) })).json();
     if (!j.ok) throw new Error(j.error);
-    if (act === 'finalize') { tr.remove(); $('cnt').textContent = document.querySelectorAll('#rows tr').length; $('empty').classList.toggle('hidden', !!document.querySelector('#rows tr')); status('Entry #' + id + ' finalized.', true); }
-    else { setDirty(tr, false); status('Entry #' + id + ' saved.', true); }
+    if (act === 'finalize') { dropDraft(id); tr.remove(); $('cnt').textContent = document.querySelectorAll('#rows tr').length; $('empty').classList.toggle('hidden', !!document.querySelector('#rows tr')); status('Entry #' + id + ' finalized.', true); }
+    else { dropDraft(id); setDirty(tr, false); status('Entry #' + id + ' saved.', true); }
   } catch (err) { status('Entry #' + id + ' not saved: ' + err.message); }
-  btns.forEach(b => b.disabled = false);
+  busy(btn, false); btns.forEach(b => b.disabled = false);
 });
 $('refresh').onclick = loadActive;
 
 async function init() {
   $('date').value = today();
+  restoreForm();
   try {
     const j = await (await fetch(API_URL)).json();
     if (!j.ok) throw new Error(j.error);
