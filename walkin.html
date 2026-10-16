@@ -55,13 +55,19 @@
     </section>
 
     <section class="bg-white rounded-xl border border-[#e4dbe1] p-4 space-y-4">
-      <h2 class="font-semibold">Sales and billing</h2>
+      <h2 class="font-semibold">Sales</h2>
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <div><label class="lbl">Salesman * <span class="font-normal text-[#8a6a7c]">(required)</span></label><div data-combo="salesman" data-list="Salesman"></div></div>
         <div><label class="lbl">Buddy</label><div data-combo="buddy" data-list="Buddy"></div></div>
         <div><label class="lbl" for="salesAlloc">Salesman allocation time</label><input id="salesAlloc" type="time" class="field"></div>
         <div><label class="lbl" for="salesDone">Sales done time</label><input id="salesDone" type="time" class="field"></div>
         <div><label class="lbl">Total interaction time</label><input id="salesDur" class="field ro" readonly placeholder="Calculated"></div>
+      </div>
+    </section>
+
+    <section class="bg-white rounded-xl border border-[#e4dbe1] p-4 space-y-4">
+      <h2 class="font-semibold">Billing</h2>
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <div><label class="lbl">Accountant</label><div data-combo="accountant" data-list="Accountant"></div></div>
         <div><label class="lbl" for="accAlloc">Accountant allocation time</label><input id="accAlloc" type="time" class="field"></div>
         <div><label class="lbl" for="accDone">Accounting done time</label><input id="accDone" type="time" class="field"></div>
@@ -74,11 +80,8 @@
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <div class="flex items-center gap-2 pt-6"><input id="purchase" type="checkbox" class="h-5 w-5 accent-[#7a3b5e]"><label for="purchase" class="font-medium">Purchase done</label></div>
         <div><label class="lbl">Order / repair / scheme</label><div data-combo="orderType" data-list="Order Type"></div></div>
-        <div><label class="lbl" for="nonSales">Non-sales product</label><textarea id="nonSales" rows="2" class="field"></textarea></div>
-        <div><label class="lbl" for="gold">Gold</label><textarea id="gold" rows="2" class="field"></textarea></div>
-        <div><label class="lbl" for="silver">Silver</label><textarea id="silver" rows="2" class="field"></textarea></div>
-        <div><label class="lbl" for="diamond">Diamond</label><textarea id="diamond" rows="2" class="field"></textarea></div>
-        <div><label class="lbl" for="gems">Gems</label><textarea id="gems" rows="2" class="field"></textarea></div>
+        <div id="itemsWrap" class="hidden sm:col-span-2"><label class="lbl" for="purchaseItems">Purchase item details</label><textarea id="purchaseItems" rows="3" class="field" placeholder="Gold, silver, diamond, gems..."></textarea></div>
+        <div id="nonSalesWrap"><label class="lbl" for="nonSales">Non-sales product</label><textarea id="nonSales" rows="2" class="field"></textarea></div>
       </div>
     </section>
 
@@ -164,9 +167,14 @@ function calc() {
 ['salesAlloc','salesDone','accAlloc','accDone'].forEach(id => $(id).addEventListener('input', calc));
 $('mobile').addEventListener('input', e => e.target.value = e.target.value.replace(/\D/g,''));
 
+function syncPurchase() {
+  const on = $('purchase').checked;
+  $('itemsWrap').classList.toggle('hidden', !on); $('nonSalesWrap').classList.toggle('hidden', on);
+}
+$('purchase').addEventListener('change', syncPurchase);
 function reset() {
   LS('wk_form', null);
-  $('f').reset(); $('date').value = today(); calc();
+  $('f').reset(); $('date').value = today(); calc(); syncPurchase();
   Object.values(combos).forEach(c => c.reset());
   radios('oldNew','oldNew',['Old','New'],'New'); radios('park','park',['Not parked','Parked','By walk'],'Not parked');
 }
@@ -179,8 +187,8 @@ async function save() {
     salesAlloc: $('salesAlloc').value, salesDone: $('salesDone').value, salesDur: $('salesDur').value,
     accountant: combos.accountant.get(), accAlloc: $('accAlloc').value, accDone: $('accDone').value, billDur: $('billDur').value,
     oldNew: radio('oldNew'), purchase: $('purchase').checked, orderType: combos.orderType.get(),
-    gold: $('gold').value.trim(), silver: $('silver').value.trim(), diamond: $('diamond').value.trim(), gems: $('gems').value.trim(),
-    nonSales: $('nonSales').value.trim(), park: radio('park'), buddy: combos.buddy.get()
+    purchaseItems: $('purchase').checked ? $('purchaseItems').value.trim() : '',
+    nonSales: $('purchase').checked ? '' : $('nonSales').value.trim(), park: radio('park'), buddy: combos.buddy.get()
   };
   if (!p.salesman) return status('Select a salesman to add the entry.');
   if (p.mobile && !/^\d{10}$/.test(p.mobile)) return status('Mobile number must be 10 digits.');
@@ -197,7 +205,7 @@ $('save').onclick = save;
 
 // ---- Unsaved-draft protection (kept on this phone, survives reloads) ----
 const LS = (k, v) => { try { if (v === undefined) return JSON.parse(localStorage.getItem(k) || 'null'); v === null ? localStorage.removeItem(k) : localStorage.setItem(k, JSON.stringify(v)); } catch (e) { return null; } };
-const TXT = ['customer','mobile','address','salesAlloc','salesDone','accAlloc','accDone','gold','silver','diamond','gems','nonSales'];
+const TXT = ['customer','mobile','address','salesAlloc','salesDone','accAlloc','accDone','purchaseItems','nonSales'];
 const CMB = ['salesman','accountant','orderType','buddy'];
 function saveForm() {
   const o = {}; TXT.forEach(k => o[k] = $(k).value);
@@ -211,7 +219,7 @@ function restoreForm() {
   $('purchase').checked = !!o.purchase;
   ['oldNew','park'].forEach(n => { const r = document.querySelector(`input[name=${n}][value="${o[n]}"]`); if (r) r.checked = true; });
   CMB.forEach(k => combos[k].set(o[k]));
-  calc();
+  calc(); syncPurchase();
 }
 $('f').addEventListener('input', saveForm);
 function dropDraft(id) { const d = LS('wk_rows') || {}; delete d[id]; LS('wk_rows', d); }
@@ -222,7 +230,7 @@ const COLS = [['customer','Customer','ta'],['mobile','Mobile','tel'],['address',
   ['salesAlloc','Sales alloc','time'],['salesDone','Sales done','time'],['salesDur','Interaction','ro'],
   ['accountant','Accountant','sel:Accountant'],['accAlloc','Acc alloc','time'],['accDone','Acc done','time'],['billDur','Billing','ro'],
   ['oldNew','Old / new','sel:*Old,New'],['purchase','Purchase','chk'],['orderType','Order / repair / scheme','sel:Order Type'],
-  ['gold','Gold','ta'],['silver','Silver','ta'],['diamond','Diamond','ta'],['gems','Gems','ta'],['nonSales','Non-sales','ta'],
+  ['purchaseItems','Purchase item details','ta'],['nonSales','Non-sales','ta'],
   ['park','Bike','sel:*Not parked,Parked,By walk']];
 const TH = 'p-2 bg-[#f6f0f3] whitespace-nowrap';
 $('thead').innerHTML = `<tr class="text-left text-xs text-[#5b4d57]"><th class="${TH} sticky left-0 z-20 w-12 min-w-[3rem]">#</th>${COLS.map(c => `<th class="${TH}${c[0] === 'customer' ? ' sticky left-12 z-20 border-r border-[#e4dbe1]' : ''}">${c[1]}</th>`).join('')}<th class="${TH} sticky right-0 z-20">Actions</th></tr>`;
@@ -260,6 +268,7 @@ function renderActive(rows) {
         <button data-act="update" class="px-3 py-1.5 rounded-lg border border-[#7a3b5e] text-[#7a3b5e] text-sm bg-white">Save</button>
         <button data-act="finalize" class="px-3 py-1.5 rounded-lg bg-[#7a3b5e] text-white text-sm">Finalize</button></td></tr>`;
   }).join('');
+  document.querySelectorAll('#rows tr').forEach(syncRow);
   $('cnt').textContent = rows.length;
   $('empty').classList.toggle('hidden', rows.length > 0);
 }
@@ -270,7 +279,12 @@ async function loadActive() {
     renderActive(j.rows);
   } catch (e) { status('Could not load active entries: ' + e.message); }
 }
+function syncRow(tr) {
+  const on = tr.querySelector('[data-k=purchase]').checked, show = (k, v) => tr.querySelector(`[data-k=${k}]`).classList.toggle('invisible', !v);
+  show('purchaseItems', on); show('nonSales', !on);
+}
 function recalc(tr) {
+  syncRow(tr);
   const q = k => tr.querySelector(`[data-k=${k}]`);
   q('salesDur').value = fmt(mins(q('salesAlloc').value, q('salesDone').value));
   q('billDur').value = fmt(mins(q('accAlloc').value, q('accDone').value));
@@ -289,6 +303,7 @@ $('rows').addEventListener('click', async e => {
     if (!confirm('Finalize entry #' + id + '? It will be locked and removed from this list.')) return;
   }
   p.action = act; p.id = id;
+  if (p.purchase) p.nonSales = ''; else p.purchaseItems = ''; // hidden field is cleared
   const btns = tr.querySelectorAll('button'); btns.forEach(b => b.disabled = true); busy(btn, true, act === 'finalize' ? 'Finalizing...' : 'Saving...');
   try {
     const j = await (await fetch(API_URL, { method: 'POST', body: JSON.stringify(p) })).json();
@@ -301,7 +316,7 @@ $('rows').addEventListener('click', async e => {
 $('refresh').onclick = loadActive;
 
 async function init() {
-  $('date').value = today();
+  $('date').value = today(); syncPurchase();
   restoreForm();
   try {
     const j = await (await fetch(API_URL)).json();
