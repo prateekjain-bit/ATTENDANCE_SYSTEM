@@ -58,6 +58,7 @@
       <h2 class="font-semibold">Sales and billing</h2>
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <div><label class="lbl">Salesman * <span class="font-normal text-[#8a6a7c]">(required)</span></label><div data-combo="salesman" data-list="Salesman"></div></div>
+        <div><label class="lbl">Buddy</label><div data-combo="buddy" data-list="Buddy"></div></div>
         <div><label class="lbl" for="salesAlloc">Salesman allocation time</label><input id="salesAlloc" type="time" class="field"></div>
         <div><label class="lbl" for="salesDone">Sales done time</label><input id="salesDone" type="time" class="field"></div>
         <div><label class="lbl">Total interaction time</label><input id="salesDur" class="field ro" readonly placeholder="Calculated"></div>
@@ -85,7 +86,6 @@
       <h2 class="font-semibold">Other</h2>
       <div class="grid gap-4 sm:grid-cols-2">
         <div><label class="lbl">Executive park the bike</label><div id="park" class="flex flex-wrap gap-4 pt-2"></div></div>
-        <div><label class="lbl">Buddy</label><div data-combo="buddy" data-list="Buddy"></div></div>
       </div>
     </section>
 
@@ -218,12 +218,12 @@ function dropDraft(id) { const d = LS('wk_rows') || {}; delete d[id]; LS('wk_row
 
 // ---- Active interactions: inline row editing ----
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const COLS = [['customer','Customer','ta'],['mobile','Mobile','tel'],['address','Address','ta'],['salesman','Salesman','sel:Salesman'],
+const COLS = [['customer','Customer','ta'],['mobile','Mobile','tel'],['address','Address','ta'],['salesman','Salesman','sel:Salesman'],['buddy','Buddy','sel:Buddy'],
   ['salesAlloc','Sales alloc','time'],['salesDone','Sales done','time'],['salesDur','Interaction','ro'],
   ['accountant','Accountant','sel:Accountant'],['accAlloc','Acc alloc','time'],['accDone','Acc done','time'],['billDur','Billing','ro'],
   ['oldNew','Old / new','sel:*Old,New'],['purchase','Purchase','chk'],['orderType','Order / repair / scheme','sel:Order Type'],
   ['gold','Gold','ta'],['silver','Silver','ta'],['diamond','Diamond','ta'],['gems','Gems','ta'],['nonSales','Non-sales','ta'],
-  ['park','Bike','sel:*Not parked,Parked,By walk'],['buddy','Buddy','sel:Buddy']];
+  ['park','Bike','sel:*Not parked,Parked,By walk']];
 const TH = 'p-2 bg-[#f6f0f3] whitespace-nowrap';
 $('thead').innerHTML = `<tr class="text-left text-xs text-[#5b4d57]"><th class="${TH} sticky left-0 z-20 w-12 min-w-[3rem]">#</th>${COLS.map(c => `<th class="${TH}${c[0] === 'customer' ? ' sticky left-12 z-20 border-r border-[#e4dbe1]' : ''}">${c[1]}</th>`).join('')}<th class="${TH} sticky right-0 z-20">Actions</th></tr>`;
 
