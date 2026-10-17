@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Photo Capture</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 min-h-screen">
+<div class="max-w-md mx-auto p-4 space-y-4">
+
+  <h1 class="text-xl font-semibold text-slate-800">Photo Capture</h1>
+
+  <div class="relative bg-black rounded-2xl overflow-hidden aspect-[3/4]">
+    <video id="video" class="w-full h-full object-cover" autoplay playsinline muted></video>
+    <img id="preview" class="hidden w-full h-full object-cover" alt="Captured photo">
+    <div id="liveClock" class="absolute bottom-2 left-2 right-2 text-center text-xs text-white bg-black/50 rounded px-2 py-1"></div>
+    <div id="camError" class="hidden absolute inset-0 flex items-center justify-center text-center text-white text-sm p-6 bg-slate-800">
+      Camera not available. Allow camera permission, or use "Open phone camera".
+    </div>
+  </div>
+
+  <canvas id="canvas" class="hidden"></canvas>
+  <input id="nativeInput" type="file" accept="image/*" capture="environment" class="hidden">
+
+  <div class="flex gap-2">
+    <button id="btnCapture" class="flex-1 bg-blue-600 text-white rounded-xl py-3 font-medium active:scale-95">Capture</button>
+    <button id="btnNative" class="flex-1 bg-white border border-slate-300 text-slate-700 rounded-xl py-3 font-medium active:scale-95">Open phone camera</button>
+  </div>
+  <button id="btnRetake" class="hidden w-full bg-white border border-slate-300 text-slate-700 rounded-xl py-2">Retake</button>
+
+  <div>
+    <label class="block text-sm font-medium text-slate-700 mb-1" for="remark">Remark / Note</label>
+    <textarea id="remark" rows="3" class="w-full rounded-xl border border-slate-300 p-3 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Add a note (optional)"></textarea>
+  </div>
+
+  <button id="btnSave" disabled class="w-full bg-green-600 disabled:bg-slate-300 text-white rounded-xl py-3 font-semibold active:scale-95">Save to Drive &amp; Log</button>
+  <div id="status" class="text-sm text-center min-h-[1.5rem]"></div>
+</div>
+
+<script>
+// ====== CONFIG ======
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxuaCZ_CuvPnZUZoF9p1MnxAFnxQ1BdAH2qZDR-pCIpWFIkvHf6ppT5wCsn21OJzo0/exec';   // ends with /exec
+// ====================
+
+const MAX_SIDE = 1280;
+const JPEG_QUALITY = 0.8;
+
+const $ = id => document.getElementById(id);
+const video = $('video'), preview = $('preview'), canvas = $('canvas'), camError = $('camError');
+const btnCapture = $('btnCapture'), btnNative = $('btnNative'), btnRetake = $('btnRetake'), btnSave = $('btnSave');
+const nativeInput = $('nativeInput'), statusEl = $('status'), remarkEl = $('remark');
+
+let stream = null, capturedData = null, capturedAt = null;
+
+const pad = n => String(n).padStart(2, '0');
+const fmt = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' +
+                 pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+setInterval(() => { $('liveClock').textContent = fmt(new Date()); }, 1000);
+
+function setStatus(msg, type) {
+  statusEl.textContent = msg || '';
+  statusEl.className = 'text-sm text-center min-h-[1.5rem] ' +
+    (type === 'err' ? 'text-red-600' : type === 'ok' ? 'text-green-600' : 'text-slate-600');
+}
+
+async function startCamera() {
+  try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error('unsupported');
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+      audio: false
+    });
+    video.srcObject = stream;
+  } catch (e) {
+    camError.classList.remove('hidden');
+    btnCapture.disabled = true;
+    btnCapture.classList.add('opacity-50');
+  }
+}
+
+// Resize, burn timestamp bottom-right, return JPEG data URL
+function render(source, w, h, when) {
+  const scale = Math.min(1, MAX_SIDE / Math.max(w, h));
+  const cw = Math.round(w * scale), ch = Math.round(h * scale);
+  canvas.width = cw; canvas.height = ch;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(source, 0, 0, cw, ch);
+
+  const text = fmt(when);
+  const fs = Math.max(14, Math.round(cw * 0.035));
+  ctx.font = 'bold ' + fs + 'px sans-serif';
+  ctx.textBaseline = 'bottom';
+  const p = Math.round(fs * 0.4);
+  const tw = ctx.measureText(text).width;
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.fillRect(cw - tw - p * 2, ch - fs - p * 2, tw + p * 2, fs + p * 2);
+  ctx.fillStyle = '#fff';
+  ctx.fillText(text, cw - tw - p, ch - p);
+  return canvas.toDataURL('image/jpeg', JPEG_QUALITY);
+}
+
+function showCaptured(dataUrl) {
+  capturedData = dataUrl;
+  preview.src = dataUrl;
+  preview.classList.remove('hidden');
+  video.classList.add('hidden');
+  btnRetake.classList.remove('hidden');
+  btnSave.disabled = false;
+  setStatus('');
+}
+
+function resetCapture() {
+  capturedData = null;
+  preview.classList.add('hidden');
+  video.classList.remove('hidden');
+  btnRetake.classList.add('hidden');
+  btnSave.disabled = true;
+}
+
+btnCapture.onclick = () => {
+  if (!stream || !video.videoWidth) return;
+  capturedAt = new Date();
+  showCaptured(render(video, video.videoWidth, video.videoHeight, capturedAt));
+};
+
+btnNative.onclick = () => nativeInput.click();
+nativeInput.onchange = () => {
+  const f = nativeInput.files && nativeInput.files[0];
+  if (!f) return;
+  capturedAt = new Date();
+  const img = new Image();
+  img.onload = () => { showCaptured(render(img, img.naturalWidth, img.naturalHeight, capturedAt)); URL.revokeObjectURL(img.src); };
+  img.src = URL.createObjectURL(f);
+  nativeInput.value = '';
+};
+btnRetake.onclick = () => { resetCapture(); setStatus(''); };
+
+btnSave.onclick = async () => {
+  if (!capturedData) return;
+  btnSave.disabled = true;
+  setStatus('Uploading...');
+  try {
+    // text/plain avoids CORS preflight, which Apps Script does not support
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        image: capturedData,
+        remark: remarkEl.value.trim(),
+        timestamp: capturedAt.toISOString()
+      })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      remarkEl.value = '';
+      resetCapture();
+      setStatus('Saved: ' + data.name, 'ok');
+    } else {
+      setStatus('Error: ' + data.error, 'err');
+      btnSave.disabled = false;
+    }
+  } catch (e) {
+    setStatus('Upload failed: ' + e.message, 'err');
+    btnSave.disabled = false;
+  }
+};
+
+window.addEventListener('beforeunload', () => { if (stream) stream.getTracks().forEach(t => t.stop()); });
+startCamera();
+</script>
+</body>
+</html>
