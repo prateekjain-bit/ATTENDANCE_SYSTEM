@@ -30,8 +30,15 @@
   <button id="btnRetake" class="hidden w-full bg-white border border-slate-300 text-slate-700 rounded-xl py-2">Retake</button>
 
   <div>
-    <label class="block text-sm font-medium text-slate-700 mb-1" for="remark">Remark / Note</label>
-    <textarea id="remark" rows="3" class="w-full rounded-xl border border-slate-300 p-3 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Add a note (optional)"></textarea>
+    <label class="block text-sm font-medium text-slate-700 mb-1" for="counter">Counter number</label>
+    <select id="counter" class="w-full rounded-xl border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
+      <option value="">Select counter</option>
+      <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+      <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+      <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+      <option value="10">10</option><option value="11">11</option><option value="12">12</option>
+      <option value="13">13</option><option value="14">14</option>
+    </select>
   </div>
 
   <button id="btnSave" disabled class="w-full bg-green-600 disabled:bg-slate-300 text-white rounded-xl py-3 font-semibold active:scale-95">Save to Drive &amp; Log</button>
@@ -49,7 +56,7 @@ const JPEG_QUALITY = 0.8;
 const $ = id => document.getElementById(id);
 const video = $('video'), preview = $('preview'), canvas = $('canvas'), camError = $('camError');
 const btnCapture = $('btnCapture'), btnNative = $('btnNative'), btnRetake = $('btnRetake'), btnSave = $('btnSave');
-const nativeInput = $('nativeInput'), statusEl = $('status'), remarkEl = $('remark');
+const nativeInput = $('nativeInput'), statusEl = $('status'), counterEl = $('counter');
 
 let stream = null, capturedData = null, capturedAt = null;
 
@@ -138,6 +145,7 @@ btnRetake.onclick = () => { resetCapture(); setStatus(''); };
 
 btnSave.onclick = async () => {
   if (!capturedData) return;
+  if (!counterEl.value) { setStatus('Please select a counter number', 'err'); return; }
   btnSave.disabled = true;
   setStatus('Uploading...');
   try {
@@ -147,13 +155,12 @@ btnSave.onclick = async () => {
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({
         image: capturedData,
-        remark: remarkEl.value.trim(),
+        counter: counterEl.value,
         timestamp: capturedAt.toISOString()
       })
     });
     const data = await res.json();
     if (data.ok) {
-      remarkEl.value = '';
       resetCapture();
       setStatus('Saved: ' + data.name, 'ok');
     } else {
