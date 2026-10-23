@@ -227,7 +227,7 @@ function dropDraft(id) { const d = LS('wk_rows') || {}; delete d[id]; LS('wk_row
 // ---- Active interactions: inline row editing ----
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const COLS = [['customer','Customer','ta'],['mobile','Mobile','tel'],['address','Address','ta'],['salesman','Salesman','sel:Salesman'],['buddy','Buddy','sel:Buddy'],
-  ['salesAlloc','Sales alloc','time'],['salesDone','Sales done','time'],['salesDur','Interaction','ro'],
+  ['salesAlloc','Sales In-time','time'],['salesDone','Sales Out-time','time'],['salesDur','Interaction','ro'],
   ['accountant','Ac Name','sel:Accountant'],['accAlloc','Ac In-time','time'],['accDone','Acc Out-time','time'],['billDur','Billing','ro'],
   ['oldNew','Old / new','sel:*Old,New'],['purchase','Purchase','chk'],['orderType','Order / repair / scheme','sel:Order Type'],
   ['purchaseItems','Purchase item details','ta'],['nonSales','Non-sales','ta'],
